@@ -1,6 +1,6 @@
 # RaceChrono Lap Analyzer
 
-[![CI](https://github.com/Xuanwo/racechrono-lap-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/Xuanwo/racechrono-lap-analyzer/actions/workflows/ci.yml)
+[![CI](https://github.com/killme2008/racechrono-lap-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/killme2008/racechrono-lap-analyzer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
@@ -24,7 +24,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 # Clone the repository
-git clone https://github.com/Xuanwo/racechrono-lap-analyzer.git
+git clone https://github.com/killme2008/racechrono-lap-analyzer.git
 cd racechrono-lap-analyzer
 
 # Install dependencies
