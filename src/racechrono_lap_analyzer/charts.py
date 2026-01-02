@@ -15,6 +15,7 @@ from plotly.subplots import make_subplots
 
 from racechrono_lap_analyzer.analysis import align_laps, compute_time_delta
 from racechrono_lap_analyzer.data_parser import LapData
+from racechrono_lap_analyzer.i18n import t
 
 # Color palette for multiple laps
 LAP_COLORS = [
@@ -60,7 +61,7 @@ def create_speed_comparison_chart(
         shared_xaxes=True,
         vertical_spacing=0.08,
         row_heights=[0.7, 0.3] if show_delta and len(laps) >= 2 else [1.0],
-        subplot_titles=['Speed (km/h)', 'Speed Delta (km/h)'] if show_delta and len(laps) >= 2 else ['Speed (km/h)']
+        subplot_titles=[t('charts.speed.title'), t('charts.speed.delta_title')] if show_delta and len(laps) >= 2 else [t('charts.speed.title')]
     )
 
     # Speed traces
@@ -91,7 +92,7 @@ def create_speed_comparison_chart(
                 y=list(np.where(delta > 0, delta, 0)),
                 fill='tozeroy',
                 mode='none',
-                name=f'{laps[1].name} faster',
+                name=t('charts.common.faster_label', name=laps[1].name),
                 fillcolor='rgba(0, 200, 0, 0.3)',
                 hoverinfo='skip'
             ),
@@ -105,7 +106,7 @@ def create_speed_comparison_chart(
                 y=list(np.where(delta < 0, delta, 0)),
                 fill='tozeroy',
                 mode='none',
-                name=f'{laps[0].name} faster',
+                name=t('charts.common.faster_label', name=laps[0].name),
                 fillcolor='rgba(200, 0, 0, 0.3)',
                 hoverinfo='skip'
             ),
@@ -118,7 +119,7 @@ def create_speed_comparison_chart(
                 x=distances,
                 y=list(delta),
                 mode='lines',
-                name='Delta',
+                name=t('charts.common.delta'),
                 line={'color': 'black', 'width': 1},
                 hovertemplate='%{x:.0f}m: %{y:+.1f} km/h<extra></extra>'
             ),
@@ -136,7 +137,7 @@ def create_speed_comparison_chart(
 
     # Add rangeslider for zoom capability
     fig.update_xaxes(
-        title_text='Distance (m)',
+        title_text=t('charts.common.distance'),
         row=2 if show_delta and len(laps) >= 2 else 1,
         rangeslider={'visible': True, 'thickness': 0.05},
         showspikes=True,
@@ -167,7 +168,7 @@ def create_acceleration_chart(laps: list[LapData]) -> go.Figure:
         rows=2, cols=1,
         shared_xaxes=True,
         vertical_spacing=0.1,
-        subplot_titles=['Lateral Acceleration (G) - Cornering', 'Longitudinal Acceleration (G) - Brake/Throttle']
+        subplot_titles=[t('charts.acceleration.lateral_title'), t('charts.acceleration.longitudinal_title')]
     )
 
     for i, (lap, data) in enumerate(zip(laps, aligned, strict=False)):
@@ -207,7 +208,7 @@ def create_acceleration_chart(laps: list[LapData]) -> go.Figure:
         fig.add_hline(y=0, line_dash='dash', line_color='gray', opacity=0.5, row=row, col=1)
 
     fig.update_xaxes(
-        title_text='Distance (m)',
+        title_text=t('charts.common.distance'),
         row=2,
         showspikes=True,
         spikemode='across',
@@ -243,8 +244,8 @@ def create_throttle_brake_chart(laps: list[LapData]) -> go.Figure | None:
     fig = go.Figure()
 
     throttle_col = None
-    throttle_label = 'Throttle'
-    for col, label in [('throttle_pos', 'Throttle'), ('accelerator_pos', 'Pedal')]:
+    throttle_label = t('charts.throttle_brake.throttle')
+    for col, label in [('throttle_pos', t('charts.throttle_brake.throttle')), ('accelerator_pos', t('charts.throttle_brake.pedal'))]:
         if any(col in data.columns and not np.isnan(data[col]).all() for data in aligned):
             throttle_col = col
             throttle_label = label
@@ -275,16 +276,16 @@ def create_throttle_brake_chart(laps: list[LapData]) -> go.Figure | None:
                     x=list(data['distance']),
                     y=list(data['brake_pos']),
                     mode='lines',
-                    name=f'{lap.name} Brake',
+                    name=f'{lap.name} {t("charts.throttle_brake.brake")}',
                     line={'color': color, 'width': 1.5, 'dash': 'dot'},
                     hovertemplate='%{x:.0f}m: %{y:.1f}%<extra></extra>'
                 )
             )
 
     fig.update_layout(
-        title='Throttle / Brake Position',
-        xaxis_title='Distance (m)',
-        yaxis_title='Position (%)',
+        title=t('charts.throttle_brake.title'),
+        xaxis_title=t('charts.common.distance'),
+        yaxis_title=t('charts.throttle_brake.y_label'),
         yaxis_range=[0, 105],
         height=350,
         hovermode='x unified',
@@ -324,9 +325,9 @@ def create_rpm_chart(laps: list[LapData]) -> go.Figure | None:
             )
 
     fig.update_layout(
-        title='Engine RPM',
-        xaxis_title='Distance (m)',
-        yaxis_title='RPM',
+        title=t('charts.rpm.title'),
+        xaxis_title=t('charts.common.distance'),
+        yaxis_title=t('charts.rpm.y_label'),
         height=300,
         hovermode='x unified',
         legend={'orientation': 'h', 'yanchor': 'bottom', 'y': 1.02},
@@ -401,7 +402,7 @@ def create_track_map(laps: list[LapData]) -> go.Figure:
                 lon=[lon[0]],
                 mode='markers',
                 marker={'size': 12, 'color': 'green', 'symbol': 'circle'},
-                name='Start' if trace_index == 0 else '',
+                name=t('charts.track_map.start') if trace_index == 0 else '',
                 showlegend=trace_index == 0,
                 hoverinfo='skip'
             )
@@ -423,7 +424,7 @@ def create_track_map(laps: list[LapData]) -> go.Figure:
         fig.add_annotation(
             x=0.5, y=0.5,
             xref='paper', yref='paper',
-            text='No GPS data available',
+            text=t('charts.track_map.no_gps'),
             showarrow=False,
             font={'size': 12, 'color': 'gray'}
         )
@@ -436,7 +437,7 @@ def create_track_map(laps: list[LapData]) -> go.Figure:
         },
         height=500,
         margin={'l': 0, 'r': 0, 't': 30, 'b': 0},
-        title='Track Map (Color = Speed)'
+        title=t('charts.track_map.title')
     )
 
     return fig
@@ -505,7 +506,7 @@ def create_gg_diagram(laps: list[LapData]) -> go.Figure:
         axis_suffix = '' if i == 1 else str(i)
         fig.update_xaxes(
             range=[-2, 2],
-            title_text='Lateral G',
+            title_text=t('charts.gg_diagram.lateral_g'),
             row=1,
             col=i,
             constrain='domain',
@@ -514,7 +515,7 @@ def create_gg_diagram(laps: list[LapData]) -> go.Figure:
         )
         fig.update_yaxes(
             range=[-2, 2],
-            title_text='Longitudinal G' if i == 1 else '',
+            title_text=t('charts.gg_diagram.longitudinal_g') if i == 1 else '',
             row=1,
             col=i,
             constrain='domain'
@@ -522,7 +523,7 @@ def create_gg_diagram(laps: list[LapData]) -> go.Figure:
 
     fig.update_layout(
         height=450,
-        title='G-G Diagram (Friction Circle)',
+        title=t('charts.gg_diagram.title'),
         showlegend=False,
         margin={'l': 50, 'r': 80, 't': 60, 'b': 50},
         template='plotly_white'
@@ -569,7 +570,7 @@ def create_time_delta_chart(laps: list[LapData]) -> go.Figure | None:
     fig.add_annotation(
         x=0.02, y=0.98,
         xref='paper', yref='paper',
-        text='↑ Slower than reference',
+        text=f'↑ {t("charts.time_delta.slower")}',
         showarrow=False,
         font={'size': 10, 'color': 'gray'},
         align='left'
@@ -577,16 +578,16 @@ def create_time_delta_chart(laps: list[LapData]) -> go.Figure | None:
     fig.add_annotation(
         x=0.02, y=0.02,
         xref='paper', yref='paper',
-        text='↓ Faster than reference',
+        text=f'↓ {t("charts.time_delta.faster")}',
         showarrow=False,
         font={'size': 10, 'color': 'gray'},
         align='left'
     )
 
     fig.update_layout(
-        title=f'Cumulative Time Delta vs {ref_lap.name}',
-        xaxis_title='Distance (m)',
-        yaxis_title='Time Delta (s)',
+        title=t('charts.time_delta.title', ref_name=ref_lap.name),
+        xaxis_title=t('charts.common.distance'),
+        yaxis_title=t('charts.time_delta.y_label'),
         height=280,
         hovermode='x unified',
         legend={'orientation': 'h', 'yanchor': 'bottom', 'y': 1.02},

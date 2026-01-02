@@ -1,0 +1,317 @@
+{
+  "_meta": {
+    "language": "zh-CN",
+    "language_name": "简体中文",
+    "version": "1.0.0"
+  },
+  "app": {
+    "title": "RaceChrono 圈速对比工具",
+    "subtitle": "对比 RaceChrono Pro 导出的圈速数据。上传多个 CSV 文件进行分析。",
+    "sidebar": {
+      "data_files": "数据文件",
+      "upload_label": "上传 RaceChrono CSV 文件",
+      "upload_help": "选择一个或多个从 RaceChrono Pro 导出的 CSV 文件（CSV3 格式）",
+      "files_uploaded": "已上传 {count} 个文件",
+      "settings": "设置",
+      "track_config": "赛道配置",
+      "track_config_help": "选择赛道以获得更准确的弯道检测",
+      "auto_detect": "自动检测",
+      "show_speed_delta": "显示速度差异叠加",
+      "show_time_delta": "显示时间差异图表",
+      "show_track_map": "显示赛道地图",
+      "show_gg_diagram": "显示 G-G 图",
+      "language": "语言"
+    },
+    "tips": {
+      "header": "提示：",
+      "upload_multiple": "上传 2 圈或以上进行对比",
+      "fastest_reference": "最快圈作为参考基准",
+      "color_meaning": "绿色 = 更快，红色 = 更慢"
+    },
+    "upload_prompt": "从侧边栏上传 CSV 文件开始分析。",
+    "export_guide": {
+      "title": "如何从 RaceChrono Pro 导出",
+      "step1": "1. 打开 RaceChrono Pro",
+      "step2": "2. 选择一个 Session",
+      "step3": "3. 点击分享图标",
+      "step4": "4. 选择 **导出为 CSV**",
+      "step5": "5. 选择 **CSV v3** 格式",
+      "step6": "6. 包含通道：GPS、加速度计、OBD（如有）"
+    },
+    "errors": {
+      "load_failed": "加载失败：{error}",
+      "no_valid_files": "没有有效的圈速文件。"
+    }
+  },
+  "summary": {
+    "header": "圈速摘要",
+    "reference": "参考（最快圈）",
+    "vs_reference": "比参考慢 {delta:.3f}s",
+    "lap_time": "圈速",
+    "max_speed": "最高速度",
+    "avg_speed": "平均速度",
+    "lateral_g": "横向 G",
+    "brake_g": "刹车 G",
+    "max_cornering": "最大过弯力",
+    "max_braking": "最大制动力",
+    "unit_kmh": "km/h"
+  },
+  "metadata": {
+    "header": "Session 信息",
+    "file": "文件",
+    "track": "赛道",
+    "session": "Session",
+    "date": "日期",
+    "lap_number": "圈数",
+    "distance": "距离",
+    "obd_available": "有 OBD 数据",
+    "obd_not_available": "无 OBD"
+  },
+  "charts": {
+    "header": "对比图表",
+    "tabs": {
+      "overview": "总览",
+      "gforce": "G 值",
+      "telemetry": "遥测",
+      "track": "赛道"
+    },
+    "speed": {
+      "title": "速度 (km/h)",
+      "delta_title": "速度差异 (km/h)"
+    },
+    "acceleration": {
+      "lateral_title": "横向加速度 (G) - 过弯",
+      "longitudinal_title": "纵向加速度 (G) - 刹车/油门"
+    },
+    "throttle_brake": {
+      "title": "油门 / 刹车位置",
+      "throttle": "油门",
+      "pedal": "踏板",
+      "brake": "刹车",
+      "y_label": "位置 (%)"
+    },
+    "rpm": {
+      "title": "发动机转速",
+      "y_label": "RPM"
+    },
+    "track_map": {
+      "title": "赛道地图（颜色 = 速度）",
+      "no_gps": "无 GPS 数据",
+      "start": "起点"
+    },
+    "gg_diagram": {
+      "title": "G-G 图（摩擦圆）",
+      "lateral_g": "横向 G",
+      "longitudinal_g": "纵向 G"
+    },
+    "time_delta": {
+      "title": "累计时间差 vs {ref_name}",
+      "y_label": "时间差 (s)",
+      "slower": "比参考慢",
+      "faster": "比参考快"
+    },
+    "common": {
+      "distance": "距离 (m)",
+      "delta": "差异",
+      "faster_label": "{name} 更快"
+    }
+  },
+  "corners": {
+    "header": "逐弯分析",
+    "count": "{count} 个弯道",
+    "source_track": "赛道：{name}",
+    "source_auto": "自动检测",
+    "no_corners": "未检测到弯道。请检查横向加速度数据。",
+    "table": {
+      "turn": "弯#",
+      "direction": "方向",
+      "apex": "弯心",
+      "speed": "速度",
+      "g_force": "G",
+      "brake": "刹车点"
+    },
+    "direction": {
+      "left": "左",
+      "right": "右"
+    }
+  },
+  "analysis": {
+    "header": "分析",
+    "bottleneck": {
+      "header": "瓶颈分析",
+      "no_bottlenecks": "未检测到明显瓶颈（阈值：{threshold} km/h 差异）",
+      "speed_delta": "速度差：{delta:+.1f} km/h",
+      "time_impact": "时间影响：{time}",
+      "categories": {
+        "braking": "刹车",
+        "cornering": "过弯",
+        "acceleration": "加速",
+        "top_speed": "极速"
+      },
+      "descriptions": {
+        "brake_later": "刹车点更晚，入弯速度快 {diff:.1f} km/h",
+        "brake_earlier": "刹车过早，入弯速度慢 {diff:.1f} km/h",
+        "corner_faster": "弯中速度快 {diff:.1f} km/h",
+        "corner_slower": "弯中速度慢，损失 {diff:.1f} km/h",
+        "exit_faster": "出弯加速更好，快 {diff:.1f} km/h",
+        "exit_slower": "出弯较慢，损失 {diff:.1f} km/h",
+        "straight_faster": "直道速度快 {diff:.1f} km/h",
+        "straight_slower": "直道极速低 {diff:.1f} km/h"
+      }
+    },
+    "coach": {
+      "header": "教练建议",
+      "comparing": "对比 {lap1} vs {lap2}（参考）",
+      "no_issues": "表现出色！未检测到明显可改进区域。",
+      "categories": {
+        "braking": "刹车",
+        "corner_speed": "弯速",
+        "exit": "出弯",
+        "straight": "直道",
+        "line": "走线"
+      },
+      "brake_early": {
+        "problem": "刹车点提前了 {distance:.0f}m",
+        "suggestion": "尝试延后 {distance:.0f}m 刹车，逐步加大力度"
+      },
+      "apex_slow": {
+        "problem": "弯心速度低 {diff:.0f} km/h",
+        "suggestion": "检查走线选择或提高入弯速度"
+      },
+      "exit_slow": {
+        "problem": "出弯速度低 {diff:.0f} km/h",
+        "suggestion": "过弯心后尽早给油"
+      },
+      "lateral_g_low": {
+        "problem": "横向 G 比参考低 {diff:.2f}G",
+        "suggestion": "轮胎仍有抓地力余量，可以更果断过弯"
+      },
+      "brake_weak": {
+        "problem": "刹车力度弱 {diff:.2f}G",
+        "suggestion": "刹车初期可以更大力，建立信心"
+      },
+      "top_speed_low": {
+        "problem": "直道极速低 {diff:.0f} km/h",
+        "suggestion": "改善上一个弯的出弯速度以获得更好的直道加速"
+      }
+    },
+    "technique": {
+      "header": "详细技术分析",
+      "no_insights": "上传更多圈速或确保数据质量以获取详细分析。",
+      "grip_low": {
+        "title": "{name}：抓地力利用率低",
+        "description": "仅 {pct:.1f}% 的时间超过 0.8G 综合加速度。轮胎仍有更多抓地力可用。考虑提高速度或延后刹车。"
+      },
+      "trail_brake": {
+        "title": "{name}：Trail Braking 机会",
+        "description": "仅 {pct:.0f}% 的弯道检测到 Trail Braking。在入弯时保持刹车压力可以帮助车辆转向并提升圈速。"
+      },
+      "throttle_delayed": {
+        "title": "{name}：弯 {corner} 油门给迟了",
+        "description": "全油门在弯心后 {dist:.0f}m 才达到。如果抓地力允许，更早给油可以提高出弯速度。"
+      },
+      "braking_key": {
+        "title": "刹车是关键改进区域",
+        "description": "在刹车区损失约 {time:.0f}ms。专注于延后刹车点并练习 Trail Braking。"
+      },
+      "corner_speed_key": {
+        "title": "弯速有待提高",
+        "description": "在弯道损失约 {time:.0f}ms。考虑采用更宽的走线或在弯中更有信心。"
+      },
+      "exit_accel_key": {
+        "title": "出弯加速在丢时间",
+        "description": "在出弯损失约 {time:.0f}ms。专注于更早给油并最大化利用抓地力。"
+      },
+      "consistency": {
+        "title": "圈速波动较大",
+        "description": "圈速变化 {cv:.1f}%（标准差：{std:.2f}s）。专注于重复最快圈的驾驶技术。"
+      }
+    },
+    "line_consistency": {
+      "title": "{location} 走线不稳定",
+      "description": "与参考线横向偏差 {deviation:.1f}m。专注于命中相同的弯心点。"
+    },
+    "throttle_smoothness": {
+      "title": "{location} 油门抖动",
+      "description": "油门输入有 {oscillations} 次开关循环。更平顺的油门输入能提高抓地力。"
+    }
+  },
+  "settings": {
+    "advanced_rules": "高级规则设置",
+    "sensitivity": "检测灵敏度",
+    "sensitivity_help": "更低 = 更严格检测，更高 = 更宽松",
+    "brake_threshold": "刹车提前阈值 (m)",
+    "apex_threshold": "弯心速度阈值 (km/h)",
+    "exit_threshold": "出弯速度阈值 (km/h)",
+    "reset_defaults": "恢复默认"
+  },
+  "footer": {
+    "title": "RaceChrono 圈速对比工具",
+    "built_with": "基于 Streamlit & Plotly 构建",
+    "tips_header": "改进建议：",
+    "tip_green": "绿色区域 = 你在这里更快",
+    "tip_red": "红色区域 = 有改进空间",
+    "tip_focus": "优先关注最大的瓶颈",
+    "tip_compare": "将最快圈与之前的尝试进行对比"
+  },
+  "statistics": {
+    "header": "轮胎利用率分析",
+    "metric": "指标",
+    "value": "数值",
+    "rating": "评价",
+    "avg_combined_g": "平均 Combined G",
+    "max_combined_g": "最大 Combined G",
+    "high_g_percentage": "高 G 力 (>1.0G) 占比",
+    "trail_brake_percentage": "Trail Braking 占比",
+    "full_throttle_percentage": "全油门占比",
+    "ratings": {
+      "low": "偏低",
+      "medium": "中等",
+      "good": "良好",
+      "excellent": "优秀"
+    },
+    "hints": {
+      "high_g_low": "顶尖应 35%+",
+      "high_g_medium": "接近顶尖水平",
+      "high_g_good": "表现不错",
+      "high_g_excellent": "非常出色",
+      "trail_brake_low": "Trail Braking 有改进空间",
+      "trail_brake_medium": "Trail Braking 技术尚可",
+      "trail_brake_good": "Trail Braking 技术不错",
+      "trail_brake_excellent": "Trail Braking 运用熟练",
+      "throttle_low": "出弯给油可更坚决",
+      "throttle_medium": "出弯油门给得尚可",
+      "throttle_good": "出弯油门给得不错",
+      "throttle_excellent": "出弯油门运用出色",
+      "no_obd": "无 OBD 数据"
+    }
+  },
+  "gg_analysis": {
+    "header": "GG 图分析",
+    "left_turn": "左弯",
+    "right_turn": "右弯",
+    "right_weak": "右弯 ({right:.2f}G) vs 左弯 ({left:.2f}G) → 右弯保守，可提高 {diff:.2f}G",
+    "left_weak": "左弯 ({left:.2f}G) vs 右弯 ({right:.2f}G) → 左弯保守，可提高 {diff:.2f}G",
+    "quadrant_weak": "{quadrant} 象限仅占 {pct:.1f}%，需加强",
+    "quadrants": {
+      "brake_left": "刹车+左转",
+      "brake_right": "刹车+右转",
+      "accel_left": "加速+左转",
+      "accel_right": "加速+右转"
+    }
+  },
+  "coach_table": {
+    "priority": "优先级",
+    "area": "区域",
+    "potential": "预估提升",
+    "difficulty": "难度",
+    "risk": "风险",
+    "problem": "问题",
+    "suggestion": "建议",
+    "difficulty_levels": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    }
+  }
+}

@@ -1,0 +1,317 @@
+{
+  "_meta": {
+    "language": "en",
+    "language_name": "English",
+    "version": "1.0.0"
+  },
+  "app": {
+    "title": "RaceChrono Lap Comparison Tool",
+    "subtitle": "Compare lap data from RaceChrono Pro. Upload multiple CSV files to analyze.",
+    "sidebar": {
+      "data_files": "Data Files",
+      "upload_label": "Upload RaceChrono CSV files",
+      "upload_help": "Select one or more CSV files exported from RaceChrono Pro (CSV3 format)",
+      "files_uploaded": "{count} file(s) uploaded",
+      "settings": "Settings",
+      "track_config": "Track Configuration",
+      "track_config_help": "Select track for accurate corner detection",
+      "auto_detect": "Auto-detect",
+      "show_speed_delta": "Show speed delta overlay",
+      "show_time_delta": "Show time delta chart",
+      "show_track_map": "Show track map",
+      "show_gg_diagram": "Show G-G diagram",
+      "language": "Language"
+    },
+    "tips": {
+      "header": "Tips:",
+      "upload_multiple": "Upload 2+ laps for comparison",
+      "fastest_reference": "Fastest lap is used as reference",
+      "color_meaning": "Green = faster, Red = slower"
+    },
+    "upload_prompt": "Upload CSV files from the sidebar to get started.",
+    "export_guide": {
+      "title": "How to export from RaceChrono Pro",
+      "step1": "1. Open RaceChrono Pro",
+      "step2": "2. Select a session",
+      "step3": "3. Tap the share icon",
+      "step4": "4. Choose **Export as CSV**",
+      "step5": "5. Select **CSV v3** format",
+      "step6": "6. Include channels: GPS, Accelerometer, and OBD (if available)"
+    },
+    "errors": {
+      "load_failed": "Failed to load: {error}",
+      "no_valid_files": "No valid lap files loaded."
+    }
+  },
+  "summary": {
+    "header": "Lap Summary",
+    "reference": "Reference (Fastest)",
+    "vs_reference": "+{delta:.3f}s vs reference",
+    "lap_time": "Lap Time",
+    "max_speed": "Max Speed",
+    "avg_speed": "Avg Speed",
+    "lateral_g": "Lateral G",
+    "brake_g": "Brake G",
+    "max_cornering": "Max cornering force",
+    "max_braking": "Max braking force",
+    "unit_kmh": "km/h"
+  },
+  "metadata": {
+    "header": "Session Metadata",
+    "file": "File",
+    "track": "Track",
+    "session": "Session",
+    "date": "Date",
+    "lap_number": "Lap #",
+    "distance": "Distance",
+    "obd_available": "OBD data",
+    "obd_not_available": "No OBD"
+  },
+  "charts": {
+    "header": "Comparison Charts",
+    "tabs": {
+      "overview": "Overview",
+      "gforce": "G-Force",
+      "telemetry": "Telemetry",
+      "track": "Track"
+    },
+    "speed": {
+      "title": "Speed (km/h)",
+      "delta_title": "Speed Delta (km/h)"
+    },
+    "acceleration": {
+      "lateral_title": "Lateral Acceleration (G) - Cornering",
+      "longitudinal_title": "Longitudinal Acceleration (G) - Brake/Throttle"
+    },
+    "throttle_brake": {
+      "title": "Throttle / Brake Position",
+      "throttle": "Throttle",
+      "pedal": "Pedal",
+      "brake": "Brake",
+      "y_label": "Position (%)"
+    },
+    "rpm": {
+      "title": "Engine RPM",
+      "y_label": "RPM"
+    },
+    "track_map": {
+      "title": "Track Map (Color = Speed)",
+      "no_gps": "No GPS data available",
+      "start": "Start"
+    },
+    "gg_diagram": {
+      "title": "G-G Diagram (Friction Circle)",
+      "lateral_g": "Lateral G",
+      "longitudinal_g": "Longitudinal G"
+    },
+    "time_delta": {
+      "title": "Cumulative Time Delta vs {ref_name}",
+      "y_label": "Time Delta (s)",
+      "slower": "Slower than reference",
+      "faster": "Faster than reference"
+    },
+    "common": {
+      "distance": "Distance (m)",
+      "delta": "Delta",
+      "faster_label": "{name} faster"
+    }
+  },
+  "corners": {
+    "header": "Corner-by-Corner Analysis",
+    "count": "{count} corners",
+    "source_track": "Track: {name}",
+    "source_auto": "Auto-detected",
+    "no_corners": "No corners detected. Check lateral acceleration data.",
+    "table": {
+      "turn": "T#",
+      "direction": "Dir",
+      "apex": "Apex",
+      "speed": "Speed",
+      "g_force": "G",
+      "brake": "Brake"
+    },
+    "direction": {
+      "left": "L",
+      "right": "R"
+    }
+  },
+  "analysis": {
+    "header": "Analysis",
+    "bottleneck": {
+      "header": "Bottleneck Analysis",
+      "no_bottlenecks": "No significant bottlenecks detected (threshold: {threshold} km/h difference)",
+      "speed_delta": "Speed delta: {delta:+.1f} km/h",
+      "time_impact": "Time impact: {time}",
+      "categories": {
+        "braking": "braking",
+        "cornering": "cornering",
+        "acceleration": "acceleration",
+        "top_speed": "top_speed"
+      },
+      "descriptions": {
+        "brake_later": "Later braking point, carrying {diff:.1f} km/h more into corner",
+        "brake_earlier": "Earlier braking, {diff:.1f} km/h slower at turn-in",
+        "corner_faster": "Higher corner speed by {diff:.1f} km/h",
+        "corner_slower": "Lower corner speed, losing {diff:.1f} km/h through corner",
+        "exit_faster": "Better exit acceleration, {diff:.1f} km/h faster",
+        "exit_slower": "Slower exit, losing {diff:.1f} km/h on acceleration",
+        "straight_faster": "Higher straight-line speed by {diff:.1f} km/h",
+        "straight_slower": "Lower top speed by {diff:.1f} km/h"
+      }
+    },
+    "coach": {
+      "header": "Coach Suggestions",
+      "comparing": "Comparing {lap1} vs {lap2} (reference)",
+      "no_issues": "Great job! No significant areas for improvement detected.",
+      "categories": {
+        "braking": "Braking",
+        "corner_speed": "Corner Speed",
+        "exit": "Exit",
+        "straight": "Straight",
+        "line": "Line"
+      },
+      "brake_early": {
+        "problem": "Brake point {distance:.0f}m too early",
+        "suggestion": "Try braking {distance:.0f}m later, build up progressively"
+      },
+      "apex_slow": {
+        "problem": "Mid-corner speed {diff:.0f} km/h low",
+        "suggestion": "Check line selection or carry more entry speed"
+      },
+      "exit_slow": {
+        "problem": "Exit speed {diff:.0f} km/h low",
+        "suggestion": "Get on throttle earlier after apex"
+      },
+      "lateral_g_low": {
+        "problem": "Lateral G {diff:.2f}G lower than ref",
+        "suggestion": "More grip available, commit harder to corner"
+      },
+      "brake_weak": {
+        "problem": "Braking force {diff:.2f}G weaker",
+        "suggestion": "Brake harder initially, more confidence"
+      },
+      "top_speed_low": {
+        "problem": "Top speed {diff:.0f} km/h lower",
+        "suggestion": "Improve previous corner exit for better straightaway speed"
+      }
+    },
+    "technique": {
+      "header": "Detailed Technical Analysis",
+      "no_insights": "Upload more laps or ensure data quality for detailed insights.",
+      "grip_low": {
+        "title": "{name}: Low grip utilization",
+        "description": "Only {pct:.1f}% of lap at >0.8G combined. The tires have more grip available. Consider carrying more speed or braking later."
+      },
+      "trail_brake": {
+        "title": "{name}: Trail braking opportunity",
+        "description": "Trail braking detected in only {pct:.0f}% of corners. Maintaining brake pressure into corner entry can help rotate the car and improve lap time."
+      },
+      "throttle_delayed": {
+        "title": "{name}: Delayed throttle in corner {corner}",
+        "description": "Full throttle reached {dist:.0f}m after apex. Earlier throttle application (if traction allows) could improve exit speed."
+      },
+      "braking_key": {
+        "title": "Braking is a key area for improvement",
+        "description": "Approximately {time:.0f}ms lost in braking zones. Focus on braking later and trail braking into corners."
+      },
+      "corner_speed_key": {
+        "title": "Corner speed needs improvement",
+        "description": "Approximately {time:.0f}ms lost in corners. Consider a wider line or more confidence through mid-corner."
+      },
+      "exit_accel_key": {
+        "title": "Exit acceleration is losing time",
+        "description": "Approximately {time:.0f}ms lost on corner exits. Focus on getting on throttle earlier and maximizing traction."
+      },
+      "consistency": {
+        "title": "Lap time variation detected",
+        "description": "Lap times vary by {cv:.1f}% (std dev: {std:.2f}s). Focus on repeating the techniques from your fastest lap."
+      }
+    },
+    "line_consistency": {
+      "title": "Line inconsistency at {location}",
+      "description": "Lateral deviation of {deviation:.1f}m from reference line. Focus on hitting the same apex point."
+    },
+    "throttle_smoothness": {
+      "title": "Throttle oscillation at {location}",
+      "description": "Throttle input shows {oscillations} on/off cycles. Smoother throttle application improves traction."
+    }
+  },
+  "settings": {
+    "advanced_rules": "Advanced Rule Settings",
+    "sensitivity": "Detection Sensitivity",
+    "sensitivity_help": "Lower = stricter detection, Higher = more lenient",
+    "brake_threshold": "Early brake threshold (m)",
+    "apex_threshold": "Apex speed threshold (km/h)",
+    "exit_threshold": "Exit speed threshold (km/h)",
+    "reset_defaults": "Reset to Defaults"
+  },
+  "footer": {
+    "title": "RaceChrono Lap Comparison Tool",
+    "built_with": "Built with Streamlit & Plotly",
+    "tips_header": "Tips for improvement:",
+    "tip_green": "Green areas = you're faster here",
+    "tip_red": "Red areas = opportunity to improve",
+    "tip_focus": "Focus on the biggest bottlenecks first",
+    "tip_compare": "Compare your best lap against previous attempts"
+  },
+  "statistics": {
+    "header": "Tire Utilization Analysis",
+    "metric": "Metric",
+    "value": "Value",
+    "rating": "Rating",
+    "avg_combined_g": "Avg Combined G",
+    "max_combined_g": "Max Combined G",
+    "high_g_percentage": "High G (>1.0G) %",
+    "trail_brake_percentage": "Trail Braking %",
+    "full_throttle_percentage": "Full Throttle %",
+    "ratings": {
+      "low": "Low",
+      "medium": "Medium",
+      "good": "Good",
+      "excellent": "Excellent"
+    },
+    "hints": {
+      "high_g_low": "Pro level is 35%+",
+      "high_g_medium": "Approaching pro level",
+      "high_g_good": "Good performance",
+      "high_g_excellent": "Excellent performance",
+      "trail_brake_low": "Trail braking needs work",
+      "trail_brake_medium": "Trail braking is decent",
+      "trail_brake_good": "Trail braking is good",
+      "trail_brake_excellent": "Trail braking is excellent",
+      "throttle_low": "Can be more aggressive on exit",
+      "throttle_medium": "Exit throttle is decent",
+      "throttle_good": "Exit throttle is good",
+      "throttle_excellent": "Exit throttle is excellent",
+      "no_obd": "No OBD data"
+    }
+  },
+  "gg_analysis": {
+    "header": "G-G Diagram Analysis",
+    "left_turn": "Left turn",
+    "right_turn": "Right turn",
+    "right_weak": "Right ({right:.2f}G) vs Left ({left:.2f}G) → Right turns conservative, can improve by {diff:.2f}G",
+    "left_weak": "Left ({left:.2f}G) vs Right ({right:.2f}G) → Left turns conservative, can improve by {diff:.2f}G",
+    "quadrant_weak": "{quadrant} quadrant only {pct:.1f}%, needs work",
+    "quadrants": {
+      "brake_left": "Brake+Left",
+      "brake_right": "Brake+Right",
+      "accel_left": "Accel+Left",
+      "accel_right": "Accel+Right"
+    }
+  },
+  "coach_table": {
+    "priority": "Priority",
+    "area": "Area",
+    "potential": "Potential",
+    "difficulty": "Difficulty",
+    "risk": "Risk",
+    "problem": "Problem",
+    "suggestion": "Suggestion",
+    "difficulty_levels": {
+      "low": "Low",
+      "medium": "Med",
+      "high": "High"
+    }
+  }
+}

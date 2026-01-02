@@ -8,13 +8,16 @@ import pandas as pd
 
 from racechrono_lap_analyzer.analysis import (
     align_laps,
+    analyze_gg_diagram,
     compare_corners,
     compute_time_delta,
+    compute_tire_utilization,
     corners_from_track_config,
     detect_corners,
     find_bottlenecks,
     generate_coach_insights,
     get_available_tracks,
+    get_corner_difficulty_risk,
     load_track_config,
     resample_by_distance,
 )
@@ -258,6 +261,117 @@ class GenerateCoachInsightsTests(unittest.TestCase):
         )
 
         self.assertIsInstance(insights, list)
+
+
+class TireUtilizationTests(unittest.TestCase):
+    def test_compute_tire_utilization_real_lap(self) -> None:
+        lap13 = load_lap(str(LAP13_CSV))
+        stats = compute_tire_utilization(lap13)
+
+        # Should have valid values
+        self.assertGreater(stats.avg_combined_g, 0)
+        self.assertGreater(stats.max_combined_g, stats.avg_combined_g)
+        self.assertGreaterEqual(stats.high_g_percentage, 0)
+        self.assertLessEqual(stats.high_g_percentage, 100)
+        self.assertGreaterEqual(stats.trail_brake_percentage, 0)
+        self.assertLessEqual(stats.trail_brake_percentage, 100)
+
+    def test_tire_utilization_ratings_are_valid(self) -> None:
+        lap13 = load_lap(str(LAP13_CSV))
+        stats = compute_tire_utilization(lap13)
+
+        valid_ratings = {"low", "medium", "good", "excellent"}
+        self.assertIn(stats.high_g_rating, valid_ratings)
+        self.assertIn(stats.trail_brake_rating, valid_ratings)
+
+    def test_tire_utilization_throttle_with_obd(self) -> None:
+        lap13 = load_lap(str(LAP13_CSV))
+        stats = compute_tire_utilization(lap13)
+
+        # Lap 13 has OBD data
+        if lap13.has_obd_data:
+            self.assertIsNotNone(stats.full_throttle_percentage)
+            self.assertIsNotNone(stats.throttle_rating)
+
+
+class GGDiagramInsightTests(unittest.TestCase):
+    def test_analyze_gg_diagram_real_lap(self) -> None:
+        lap13 = load_lap(str(LAP13_CSV))
+        insights = analyze_gg_diagram(lap13)
+
+        # Should have valid values
+        self.assertGreaterEqual(insights.left_turn_avg_g, 0)
+        self.assertGreaterEqual(insights.right_turn_avg_g, 0)
+
+        # Quadrant percentages should sum to less than 100
+        # (not all time is in a quadrant - straight driving, etc.)
+        total_quadrant = (
+            insights.brake_left_pct
+            + insights.brake_right_pct
+            + insights.accel_left_pct
+            + insights.accel_right_pct
+        )
+        self.assertLessEqual(total_quadrant, 100)
+
+    def test_gg_diagram_insights_are_strings(self) -> None:
+        lap13 = load_lap(str(LAP13_CSV))
+        insights = analyze_gg_diagram(lap13)
+
+        self.assertIsInstance(insights.insights, list)
+        for insight in insights.insights:
+            self.assertIsInstance(insight, str)
+
+    def test_gg_diagram_left_right_balance(self) -> None:
+        lap13 = load_lap(str(LAP13_CSV))
+        insights = analyze_gg_diagram(lap13)
+
+        # Balance is the difference between right and left
+        expected_balance = insights.right_turn_avg_g - insights.left_turn_avg_g
+        self.assertAlmostEqual(insights.left_right_balance, expected_balance, places=5)
+
+
+class CoachInsightDifficultyRiskTests(unittest.TestCase):
+    def test_corner_difficulty_risk_hairpin(self) -> None:
+        difficulty, risk = get_corner_difficulty_risk("hairpin")
+        self.assertEqual(difficulty, "high")
+        self.assertEqual(risk, "low")
+
+    def test_corner_difficulty_risk_fast(self) -> None:
+        difficulty, risk = get_corner_difficulty_risk("fast")
+        self.assertEqual(difficulty, "medium")
+        self.assertEqual(risk, "high")
+
+    def test_corner_difficulty_risk_medium(self) -> None:
+        difficulty, risk = get_corner_difficulty_risk("medium")
+        self.assertEqual(difficulty, "medium")
+        self.assertEqual(risk, "medium")
+
+    def test_corner_difficulty_risk_from_speed(self) -> None:
+        # Low speed = hairpin-like
+        difficulty, risk = get_corner_difficulty_risk(None, 50.0)
+        self.assertEqual(difficulty, "high")
+        self.assertEqual(risk, "low")
+
+        # High speed = fast corner
+        difficulty, risk = get_corner_difficulty_risk(None, 100.0)
+        self.assertEqual(difficulty, "medium")
+        self.assertEqual(risk, "high")
+
+    def test_coach_insights_have_difficulty_risk(self) -> None:
+        lap9 = load_lap(str(LAP9_CSV))
+        lap13 = load_lap(str(LAP13_CSV))
+
+        laps = sorted([lap9, lap13], key=lambda x: x.lap_time)
+        config = load_track_config("tianma")
+
+        insights = generate_coach_insights(
+            laps[0], laps[1], max_insights=5, track_config=config
+        )
+
+        valid_levels = {"low", "medium", "high"}
+        for insight in insights:
+            self.assertIn(insight.difficulty, valid_levels)
+            self.assertIn(insight.risk, valid_levels)
 
 
 if __name__ == "__main__":

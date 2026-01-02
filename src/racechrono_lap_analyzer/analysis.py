@@ -8,9 +8,12 @@ Provides functions for:
 - Track configuration support
 """
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -18,6 +21,10 @@ from scipy.interpolate import interp1d
 from scipy.signal import find_peaks
 
 from racechrono_lap_analyzer.data_parser import LapData
+from racechrono_lap_analyzer.i18n import t
+
+if TYPE_CHECKING:
+    from racechrono_lap_analyzer.rules import RuleConfig
 
 # Track configurations directory
 TRACKS_DIR = Path(__file__).parent / "tracks"
@@ -42,7 +49,7 @@ def get_available_tracks() -> list[str]:
 def corners_from_track_config(
     df: pd.DataFrame,
     track_config: dict
-) -> list['Corner']:
+) -> list[Corner]:
     """
     Create Corner objects from track configuration.
 
@@ -142,9 +149,13 @@ class RacingInsight:
 
     category: str  # 'braking', 'cornering', 'acceleration', 'line', 'grip'
     severity: str  # 'info', 'suggestion', 'warning'
-    title: str
-    description: str
+    title: str  # English fallback or translation key
+    description: str  # English fallback or translation key
     distance_range: tuple[float, float] | None = None
+    # i18n support: if set, use these keys for translation
+    title_key: str | None = None
+    description_key: str | None = None
+    format_args: dict | None = None  # Args for string formatting
 
 
 @dataclass
@@ -181,6 +192,43 @@ class CoachInsight:
     time_benefit_ms: float
     problem: str  # Short description of the issue
     suggestion: str  # What to do about it
+    difficulty: str = "medium"  # 'low', 'medium', 'high'
+    risk: str = "medium"  # 'low', 'medium', 'high'
+
+
+@dataclass
+class TireUtilization:
+    """Tire utilization statistics with evaluation."""
+
+    avg_combined_g: float
+    max_combined_g: float
+    high_g_percentage: float  # Time spent >1.0G (%)
+    trail_brake_percentage: float  # Time braking while turning (%)
+    full_throttle_percentage: float | None  # Time at >90% throttle (%), None if no OBD
+
+    # Evaluation ratings: "low" | "medium" | "good" | "excellent"
+    high_g_rating: str
+    trail_brake_rating: str
+    throttle_rating: str | None
+
+
+@dataclass
+class GGDiagramInsight:
+    """Insights derived from G-G diagram analysis."""
+
+    # Left/right turn utilization
+    left_turn_avg_g: float  # Average |lateral G| in left turns (lat < -0.3)
+    right_turn_avg_g: float  # Average |lateral G| in right turns (lat > 0.3)
+    left_right_balance: float  # right - left, positive = right stronger
+
+    # Quadrant fill rates (percentage of time in each quadrant)
+    brake_left_pct: float  # Braking + left turn
+    brake_right_pct: float  # Braking + right turn
+    accel_left_pct: float  # Accelerating + left turn
+    accel_right_pct: float  # Accelerating + right turn
+
+    # Generated insights
+    insights: list[str]  # Human-readable insight strings
 
 
 def resample_by_distance(
@@ -525,7 +573,10 @@ def analyze_racing_technique(laps: list[LapData]) -> list[RacingInsight]:
                     severity='suggestion',
                     title=f'{lap.name}: Low grip utilization',
                     description=f'Only {high_g_pct:.1f}% of lap at >0.8G combined. '
-                               f'The tires have more grip available. Consider carrying more speed or braking later.'
+                               f'The tires have more grip available. Consider carrying more speed or braking later.',
+                    title_key='analysis.technique.grip_low.title',
+                    description_key='analysis.technique.grip_low.description',
+                    format_args={'name': lap.name, 'pct': high_g_pct}
                 ))
 
     # 2. Trail braking analysis
@@ -559,7 +610,10 @@ def analyze_racing_technique(laps: list[LapData]) -> list[RacingInsight]:
                         severity='suggestion',
                         title=f'{lap.name}: Trail braking opportunity',
                         description=f'Trail braking detected in only {trail_brake_pct:.0f}% of corners. '
-                                   f'Maintaining brake pressure into corner entry can help rotate the car and improve lap time.'
+                                   f'Maintaining brake pressure into corner entry can help rotate the car and improve lap time.',
+                        title_key='analysis.technique.trail_brake.title',
+                        description_key='analysis.technique.trail_brake.description',
+                        format_args={'name': lap.name, 'pct': trail_brake_pct}
                     ))
 
     # 3. Throttle application analysis (if OBD data available)
@@ -594,7 +648,10 @@ def analyze_racing_technique(laps: list[LapData]) -> list[RacingInsight]:
                             title=f'{lap.name}: Delayed throttle in corner {corner.index}',
                             description=f'Full throttle reached {dist_to_full:.0f}m after apex. '
                                        f'Earlier throttle application (if traction allows) could improve exit speed.',
-                            distance_range=(corner.apex_distance, corner.end_distance)
+                            distance_range=(corner.apex_distance, corner.end_distance),
+                            title_key='analysis.technique.throttle_delayed.title',
+                            description_key='analysis.technique.throttle_delayed.description',
+                            format_args={'name': lap.name, 'corner': corner.index, 'dist': dist_to_full}
                         ))
 
     # 4. Compare fastest vs slowest lap
@@ -615,7 +672,10 @@ def analyze_racing_technique(laps: list[LapData]) -> list[RacingInsight]:
                     severity='warning',
                     title='Braking is a key area for improvement',
                     description=f'Approximately {total_brake_loss:.0f}ms lost in braking zones. '
-                               f'Focus on braking later and trail braking into corners.'
+                               f'Focus on braking later and trail braking into corners.',
+                    title_key='analysis.technique.braking_key.title',
+                    description_key='analysis.technique.braking_key.description',
+                    format_args={'time': total_brake_loss}
                 ))
 
         if corner_bottlenecks:
@@ -626,7 +686,10 @@ def analyze_racing_technique(laps: list[LapData]) -> list[RacingInsight]:
                     severity='warning',
                     title='Corner speed needs improvement',
                     description=f'Approximately {total_corner_loss:.0f}ms lost in corners. '
-                               f'Consider a wider line or more confidence through mid-corner.'
+                               f'Consider a wider line or more confidence through mid-corner.',
+                    title_key='analysis.technique.corner_speed_key.title',
+                    description_key='analysis.technique.corner_speed_key.description',
+                    format_args={'time': total_corner_loss}
                 ))
 
         if accel_bottlenecks:
@@ -637,7 +700,10 @@ def analyze_racing_technique(laps: list[LapData]) -> list[RacingInsight]:
                     severity='warning',
                     title='Exit acceleration is losing time',
                     description=f'Approximately {total_accel_loss:.0f}ms lost on corner exits. '
-                               f'Focus on getting on throttle earlier and maximizing traction.'
+                               f'Focus on getting on throttle earlier and maximizing traction.',
+                    title_key='analysis.technique.exit_accel_key.title',
+                    description_key='analysis.technique.exit_accel_key.description',
+                    format_args={'time': total_accel_loss}
                 ))
 
     # 5. Consistency analysis
@@ -653,7 +719,10 @@ def analyze_racing_technique(laps: list[LapData]) -> list[RacingInsight]:
                 severity='info',
                 title='Lap time variation detected',
                 description=f'Lap times vary by {cv:.1f}% (std dev: {std_dev:.2f}s). '
-                           f'Focus on repeating the techniques from your fastest lap.'
+                           f'Focus on repeating the techniques from your fastest lap.',
+                title_key='analysis.technique.consistency.title',
+                description_key='analysis.technique.consistency.description',
+                format_args={'cv': cv, 'std': std_dev}
             ))
 
     return insights
@@ -831,14 +900,29 @@ def generate_coach_insights(
     ref_lap: LapData,
     compare_lap: LapData,
     max_insights: int = 5,
-    track_config: dict | None = None
+    track_config: dict | None = None,
+    rule_config: RuleConfig | None = None,
 ) -> list[CoachInsight]:
     """
     Generate prioritized coach-style insights.
 
     Analyzes the differences between two laps and returns
     actionable suggestions sorted by potential time benefit.
+
+    Uses adaptive thresholds based on corner type if rule_config is provided.
     """
+    # Import here to avoid circular imports
+    from racechrono_lap_analyzer.rules import (
+        RuleConfig,
+        estimate_time_benefit_physics,
+        get_corner_config_by_index,
+        get_corner_type,
+        get_thresholds,
+    )
+
+    if rule_config is None:
+        rule_config = RuleConfig()
+
     insights = []
 
     # Get corner comparisons (use track config if provided)
@@ -847,64 +931,97 @@ def generate_coach_insights(
     # Analyze each corner for issues
     for cc in corner_comparisons:
         # Skip corners where compare lap is faster
-        if cc.time_lost_ms <= 10:  # 10ms threshold
+        if cc.time_lost_ms <= rule_config.min_time_benefit_ms:
             continue
 
         location = f"T{cc.corner_index} ({cc.apex_distance:.0f}m)"
 
+        # Get corner config and adaptive thresholds
+        corner_cfg = get_corner_config_by_index(cc.corner_index, track_config)
+        corner_type = get_corner_type(corner_cfg, None)
+        thresholds = get_thresholds(corner_type, rule_config, corner_cfg)
+
+        # Get difficulty and risk based on corner type
+        # Use corner config type if available, otherwise infer from apex speed
+        cfg_corner_type = corner_cfg.get('type') if corner_cfg else None
+        difficulty, risk = get_corner_difficulty_risk(cfg_corner_type, cc.apex_speed_diff)
+
+        # Estimate section length for physics-based time calculation
+        section_length = 100.0  # Default estimate
+
         # Early braking detection
-        if cc.brake_point_diff < -10:  # Braking more than 10m earlier
+        if cc.brake_point_diff < -thresholds.brake_early_m:
+            time_benefit = estimate_time_benefit_physics(
+                cc.apex_speed_diff, section_length, 80.0, corner_type
+            ) if cc.apex_speed_diff else abs(cc.time_lost_ms * 0.4)
+
             insights.append(CoachInsight(
-                priority=0,  # Will be set later based on time benefit
+                priority=0,
                 category='braking',
                 location=location,
-                time_benefit_ms=abs(cc.time_lost_ms * 0.4),  # Estimate 40% from braking
-                problem=f"Brake point {abs(cc.brake_point_diff):.0f}m too early",
-                suggestion=f"Try braking {abs(cc.brake_point_diff):.0f}m later, build up progressively"
+                time_benefit_ms=time_benefit,
+                problem=t("analysis.coach.brake_early.problem", distance=abs(cc.brake_point_diff)),
+                suggestion=t("analysis.coach.brake_early.suggestion", distance=abs(cc.brake_point_diff)),
+                difficulty=difficulty,
+                risk=risk
             ))
 
         # Low mid-corner speed
-        if cc.apex_speed_diff < -5:  # 5+ km/h slower at apex
+        if cc.apex_speed_diff < -thresholds.apex_speed_low_kmh:
+            time_benefit = estimate_time_benefit_physics(
+                cc.apex_speed_diff, section_length, 60.0, corner_type
+            )
             insights.append(CoachInsight(
                 priority=0,
                 category='corner_speed',
                 location=location,
-                time_benefit_ms=abs(cc.time_lost_ms * 0.3),
-                problem=f"Mid-corner speed {abs(cc.apex_speed_diff):.0f} km/h low",
-                suggestion="Check line selection or carry more entry speed"
+                time_benefit_ms=time_benefit,
+                problem=t("analysis.coach.apex_slow.problem", diff=abs(cc.apex_speed_diff)),
+                suggestion=t("analysis.coach.apex_slow.suggestion"),
+                difficulty=difficulty,
+                risk=risk
             ))
 
         # Poor exit acceleration
-        if cc.exit_speed_diff < -8:  # 8+ km/h slower on exit
+        if cc.exit_speed_diff < -thresholds.exit_speed_low_kmh:
+            time_benefit = estimate_time_benefit_physics(
+                cc.exit_speed_diff, section_length * 1.5, 70.0, corner_type
+            )
             insights.append(CoachInsight(
                 priority=0,
                 category='exit',
                 location=location,
-                time_benefit_ms=abs(cc.time_lost_ms * 0.3),
-                problem=f"Exit speed {abs(cc.exit_speed_diff):.0f} km/h low",
-                suggestion="Get on throttle earlier after apex"
+                time_benefit_ms=time_benefit,
+                problem=t("analysis.coach.exit_slow.problem", diff=abs(cc.exit_speed_diff)),
+                suggestion=t("analysis.coach.exit_slow.suggestion"),
+                difficulty=difficulty,
+                risk=risk
             ))
 
         # Conservative cornering (low lateral G)
-        if cc.max_lateral_g_diff < -0.15:
+        if cc.max_lateral_g_diff < -thresholds.lateral_g_low:
             insights.append(CoachInsight(
                 priority=0,
                 category='corner_speed',
                 location=location,
                 time_benefit_ms=abs(cc.time_lost_ms * 0.2),
-                problem=f"Lateral G {abs(cc.max_lateral_g_diff):.2f}G lower than ref",
-                suggestion="More grip available, commit harder to corner"
+                problem=t("analysis.coach.lateral_g_low.problem", diff=abs(cc.max_lateral_g_diff)),
+                suggestion=t("analysis.coach.lateral_g_low.suggestion"),
+                difficulty=difficulty,
+                risk=risk
             ))
 
         # Weak braking force
-        if cc.brake_peak_g_diff > 0.2:  # Less negative = weaker braking
+        if cc.brake_peak_g_diff > thresholds.brake_force_weak_g:
             insights.append(CoachInsight(
                 priority=0,
                 category='braking',
                 location=location,
                 time_benefit_ms=abs(cc.time_lost_ms * 0.2),
-                problem=f"Braking force {cc.brake_peak_g_diff:.2f}G weaker",
-                suggestion="Brake harder initially, more confidence"
+                problem=t("analysis.coach.brake_weak.problem", diff=cc.brake_peak_g_diff),
+                suggestion=t("analysis.coach.brake_weak.suggestion"),
+                difficulty=difficulty,
+                risk=risk
             ))
 
     # Analyze straights - find sections with sustained positive lon_acc
@@ -960,8 +1077,10 @@ def generate_coach_insights(
                                     category='straight',
                                     location=f"Straight ({distances[start]:.0f}m)",
                                     time_benefit_ms=time_benefit,
-                                    problem=f"Top speed {abs(speed_diff):.0f} km/h lower",
-                                    suggestion="Improve previous corner exit for better straightaway speed"
+                                    problem=t("analysis.coach.top_speed_low.problem", diff=abs(speed_diff)),
+                                    suggestion=t("analysis.coach.top_speed_low.suggestion"),
+                                    difficulty="low",
+                                    risk="low"
                                 ))
 
     # Sort by time benefit and assign priorities
@@ -976,8 +1095,9 @@ def generate_coach_insights(
             deduplicated.append(insight)
 
     # Assign priorities and limit count
+    effective_max = rule_config.max_insights if rule_config else max_insights
     result = []
-    for i, insight in enumerate(deduplicated[:max_insights]):
+    for i, insight in enumerate(deduplicated[:effective_max]):
         insight.priority = i + 1
         result.append(insight)
 
@@ -1036,3 +1156,255 @@ def get_friction_circle_analysis(
             result['left_right_balance'][key] = right_avg - left_avg  # positive = stronger right
 
     return result
+
+
+def _rate_high_g(percentage: float) -> str:
+    """Rate high G percentage based on professional standards."""
+    if percentage < 20:
+        return "low"
+    elif percentage < 30:
+        return "medium"
+    elif percentage < 40:
+        return "good"
+    else:
+        return "excellent"
+
+
+def _rate_trail_brake(percentage: float) -> str:
+    """Rate trail braking percentage based on professional standards."""
+    if percentage < 5:
+        return "low"
+    elif percentage < 15:
+        return "medium"
+    elif percentage < 25:
+        return "good"
+    else:
+        return "excellent"
+
+
+def _rate_throttle(percentage: float) -> str:
+    """Rate full throttle percentage based on professional standards."""
+    if percentage < 15:
+        return "low"
+    elif percentage < 20:
+        return "medium"
+    elif percentage < 30:
+        return "good"
+    else:
+        return "excellent"
+
+
+def compute_tire_utilization(lap: LapData) -> TireUtilization:
+    """
+    Compute tire utilization metrics for a single lap.
+
+    Analyzes how well the driver is using the available tire grip by examining:
+    - Combined G-force (how much total grip is being used)
+    - High G percentage (time spent at >1.0G)
+    - Trail braking (braking while turning)
+    - Full throttle usage (if OBD data available)
+    """
+    df = lap.df
+
+    # Get acceleration data
+    lat_acc = df['lateral_acc'].values if 'lateral_acc' in df.columns else np.zeros(len(df))
+    lon_acc = df['longitudinal_acc'].values if 'longitudinal_acc' in df.columns else np.zeros(len(df))
+    combined_acc = df['combined_acc'].values if 'combined_acc' in df.columns else np.sqrt(lat_acc**2 + lon_acc**2)
+
+    # Filter out NaN values
+    valid_mask = np.isfinite(combined_acc) & np.isfinite(lat_acc) & np.isfinite(lon_acc)
+    combined_acc_valid = combined_acc[valid_mask]
+    lat_acc_valid = lat_acc[valid_mask]
+    lon_acc_valid = lon_acc[valid_mask]
+
+    total_samples = len(combined_acc_valid)
+    if total_samples == 0:
+        return TireUtilization(
+            avg_combined_g=0.0,
+            max_combined_g=0.0,
+            high_g_percentage=0.0,
+            trail_brake_percentage=0.0,
+            full_throttle_percentage=None,
+            high_g_rating="low",
+            trail_brake_rating="low",
+            throttle_rating=None
+        )
+
+    # Calculate combined G metrics
+    avg_combined_g = float(np.nanmean(combined_acc_valid))
+    max_combined_g = float(np.nanmax(combined_acc_valid))
+
+    # High G percentage (>1.0G)
+    high_g_count = np.sum(combined_acc_valid > 1.0)
+    high_g_percentage = (high_g_count / total_samples) * 100
+
+    # Trail braking: braking (lon < -0.2) while turning (|lat| > 0.3)
+    trail_brake_mask = (lon_acc_valid < -0.2) & (np.abs(lat_acc_valid) > 0.3)
+    trail_brake_count = np.sum(trail_brake_mask)
+    trail_brake_percentage = (trail_brake_count / total_samples) * 100
+
+    # Full throttle percentage (if OBD data available)
+    full_throttle_percentage = None
+    throttle_rating = None
+    throttle_col = None
+    for col in ['throttle_pos', 'accelerator_pos']:
+        if col in df.columns and not df[col].isna().all():
+            throttle_col = col
+            break
+
+    if throttle_col:
+        throttle_data = df[throttle_col].values
+        valid_throttle = throttle_data[np.isfinite(throttle_data)]
+        if len(valid_throttle) > 0:
+            full_throttle_count = np.sum(valid_throttle > 90)
+            full_throttle_percentage = (full_throttle_count / len(valid_throttle)) * 100
+            throttle_rating = _rate_throttle(full_throttle_percentage)
+
+    return TireUtilization(
+        avg_combined_g=avg_combined_g,
+        max_combined_g=max_combined_g,
+        high_g_percentage=high_g_percentage,
+        trail_brake_percentage=trail_brake_percentage,
+        full_throttle_percentage=full_throttle_percentage,
+        high_g_rating=_rate_high_g(high_g_percentage),
+        trail_brake_rating=_rate_trail_brake(trail_brake_percentage),
+        throttle_rating=throttle_rating
+    )
+
+
+def analyze_gg_diagram(lap: LapData) -> GGDiagramInsight:
+    """
+    Analyze G-G diagram distribution and generate insights.
+
+    Examines:
+    - Left vs right turn utilization balance
+    - Quadrant fill rates (brake+turn, accel+turn combinations)
+    - Generates human-readable insights about weaknesses
+    """
+    df = lap.df
+
+    lat_acc = df['lateral_acc'].values if 'lateral_acc' in df.columns else np.zeros(len(df))
+    lon_acc = df['longitudinal_acc'].values if 'longitudinal_acc' in df.columns else np.zeros(len(df))
+
+    # Filter valid samples
+    valid_mask = np.isfinite(lat_acc) & np.isfinite(lon_acc)
+    lat = lat_acc[valid_mask]
+    lon = lon_acc[valid_mask]
+
+    total_samples = len(lat)
+    if total_samples == 0:
+        return GGDiagramInsight(
+            left_turn_avg_g=0.0,
+            right_turn_avg_g=0.0,
+            left_right_balance=0.0,
+            brake_left_pct=0.0,
+            brake_right_pct=0.0,
+            accel_left_pct=0.0,
+            accel_right_pct=0.0,
+            insights=[]
+        )
+
+    # Left/right turn utilization (lat < -0.3 = left turn, lat > 0.3 = right turn)
+    left_turn_mask = lat < -0.3
+    right_turn_mask = lat > 0.3
+
+    left_turn_samples = np.abs(lat[left_turn_mask])
+    right_turn_samples = lat[right_turn_mask]
+
+    left_turn_avg_g = float(np.nanmean(left_turn_samples)) if len(left_turn_samples) > 0 else 0.0
+    right_turn_avg_g = float(np.nanmean(right_turn_samples)) if len(right_turn_samples) > 0 else 0.0
+    left_right_balance = right_turn_avg_g - left_turn_avg_g
+
+    # Quadrant analysis
+    # brake_left: lon < -0.2 AND lat < -0.3
+    brake_left = np.sum((lon < -0.2) & (lat < -0.3))
+    brake_left_pct = (brake_left / total_samples) * 100
+
+    # brake_right: lon < -0.2 AND lat > 0.3
+    brake_right = np.sum((lon < -0.2) & (lat > 0.3))
+    brake_right_pct = (brake_right / total_samples) * 100
+
+    # accel_left: lon > 0.1 AND lat < -0.3
+    accel_left = np.sum((lon > 0.1) & (lat < -0.3))
+    accel_left_pct = (accel_left / total_samples) * 100
+
+    # accel_right: lon > 0.1 AND lat > 0.3
+    accel_right = np.sum((lon > 0.1) & (lat > 0.3))
+    accel_right_pct = (accel_right / total_samples) * 100
+
+    # Generate insights
+    insights = []
+
+    # Left/right balance insight
+    if abs(left_right_balance) > 0.1:
+        if left_right_balance < 0:
+            # Right turns are weaker
+            diff = abs(left_right_balance)
+            insights.append(t("gg_analysis.right_weak", left=left_turn_avg_g, right=right_turn_avg_g, diff=diff))
+        else:
+            # Left turns are weaker
+            diff = abs(left_right_balance)
+            insights.append(t("gg_analysis.left_weak", left=left_turn_avg_g, right=right_turn_avg_g, diff=diff))
+
+    # Find weakest quadrant
+    quadrants = {
+        "brake_left": brake_left_pct,
+        "brake_right": brake_right_pct,
+        "accel_left": accel_left_pct,
+        "accel_right": accel_right_pct
+    }
+
+    # Identify quadrants that are significantly lower than average
+    avg_quadrant = sum(quadrants.values()) / 4
+    for name, pct in quadrants.items():
+        if pct < avg_quadrant * 0.5 and avg_quadrant > 2:  # Less than half of average
+            insights.append(t("gg_analysis.quadrant_weak", quadrant=t(f"gg_analysis.quadrants.{name}"), pct=pct))
+
+    return GGDiagramInsight(
+        left_turn_avg_g=left_turn_avg_g,
+        right_turn_avg_g=right_turn_avg_g,
+        left_right_balance=left_right_balance,
+        brake_left_pct=brake_left_pct,
+        brake_right_pct=brake_right_pct,
+        accel_left_pct=accel_left_pct,
+        accel_right_pct=accel_right_pct,
+        insights=insights
+    )
+
+
+def get_corner_difficulty_risk(
+    corner_type: str | None,
+    min_speed_kmh: float | None = None
+) -> tuple[str, str]:
+    """
+    Determine difficulty and risk based on corner type.
+
+    Returns (difficulty, risk) tuple.
+
+    Corner type mapping:
+    - hairpin: high difficulty, low risk (technical but slow)
+    - medium: medium difficulty, medium risk
+    - fast: medium difficulty, high risk (speed makes mistakes costly)
+    - straight: low difficulty, low risk
+    """
+    corner_type_map = {
+        "hairpin": ("high", "low"),
+        "fast": ("medium", "high"),
+        "medium": ("medium", "medium"),
+        "straight": ("low", "low"),
+    }
+    if corner_type:
+        result = corner_type_map.get(corner_type.lower())
+        if result:
+            return result
+
+    # Fallback: infer from min speed if available
+    if min_speed_kmh is not None:
+        if min_speed_kmh < 60:
+            return ("high", "low")  # Slow = hairpin-like
+        elif min_speed_kmh > 90:
+            return ("medium", "high")  # Fast corner
+        else:
+            return ("medium", "medium")
+
+    return ("medium", "medium")

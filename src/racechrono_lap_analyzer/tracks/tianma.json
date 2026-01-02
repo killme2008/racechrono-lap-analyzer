@@ -11,7 +11,12 @@
       "direction": "left",
       "type": "hairpin",
       "typical_speed_kmh": 43,
-      "notes": "T1 左发卡弯"
+      "expected_lateral_g": 0.9,
+      "expected_brake_g": 1.0,
+      "notes": "T1 左发卡弯",
+      "thresholds_override": {
+        "brake_early_m": 6
+      }
     },
     {
       "id": "T2",
@@ -21,6 +26,8 @@
       "direction": "right",
       "type": "medium",
       "typical_speed_kmh": 111,
+      "expected_lateral_g": 0.7,
+      "expected_brake_g": 0.3,
       "notes": "T2 右中速弯"
     },
     {
@@ -31,6 +38,8 @@
       "direction": "right",
       "type": "medium",
       "typical_speed_kmh": 80,
+      "expected_lateral_g": 0.8,
+      "expected_brake_g": 0.6,
       "notes": "T3 右中速弯"
     },
     {
@@ -41,6 +50,8 @@
       "direction": "left",
       "type": "fast",
       "typical_speed_kmh": 85,
+      "expected_lateral_g": 0.7,
+      "expected_brake_g": 0.4,
       "notes": "T4 快左弯，进入 T4-T5-T6 组合"
     },
     {
@@ -51,7 +62,13 @@
       "direction": "left",
       "type": "hairpin",
       "typical_speed_kmh": 48,
-      "notes": "T5 左发卡弯"
+      "expected_lateral_g": 0.9,
+      "expected_brake_g": 0.9,
+      "notes": "T5 左发卡弯",
+      "thresholds_override": {
+        "brake_early_m": 6,
+        "apex_speed_low_kmh": 2
+      }
     },
     {
       "id": "T6",
@@ -61,6 +78,8 @@
       "direction": "left",
       "type": "medium",
       "typical_speed_kmh": 88,
+      "expected_lateral_g": 0.7,
+      "expected_brake_g": 0.2,
       "notes": "T6 左出弯"
     },
     {
@@ -71,6 +90,8 @@
       "direction": "right",
       "type": "medium",
       "typical_speed_kmh": 86,
+      "expected_lateral_g": 0.75,
+      "expected_brake_g": 0.5,
       "notes": "T7 右中速弯"
     },
     {
@@ -81,6 +102,8 @@
       "direction": "left",
       "type": "fast",
       "typical_speed_kmh": 116,
+      "expected_lateral_g": 0.6,
+      "expected_brake_g": 0.3,
       "notes": "T8 快左弯"
     },
     {
@@ -91,7 +114,12 @@
       "direction": "right",
       "type": "hairpin",
       "typical_speed_kmh": 44,
-      "notes": "T9 右发卡弯"
+      "expected_lateral_g": 0.95,
+      "expected_brake_g": 1.1,
+      "notes": "T9 右发卡弯",
+      "thresholds_override": {
+        "brake_early_m": 6
+      }
     },
     {
       "id": "T10",
@@ -101,6 +129,8 @@
       "direction": "right",
       "type": "medium",
       "typical_speed_kmh": 76,
+      "expected_lateral_g": 0.8,
+      "expected_brake_g": 0.5,
       "notes": "T10 右中速弯"
     },
     {
@@ -111,6 +141,8 @@
       "direction": "left",
       "type": "medium",
       "typical_speed_kmh": 68,
+      "expected_lateral_g": 0.8,
+      "expected_brake_g": 0.4,
       "notes": "T11 左中速弯"
     },
     {
@@ -121,6 +153,8 @@
       "direction": "left",
       "type": "medium",
       "typical_speed_kmh": 72,
+      "expected_lateral_g": 0.75,
+      "expected_brake_g": 0.3,
       "notes": "T12 左中速弯"
     },
     {
@@ -131,6 +165,8 @@
       "direction": "left",
       "type": "medium",
       "typical_speed_kmh": 71,
+      "expected_lateral_g": 0.75,
+      "expected_brake_g": 0.35,
       "notes": "T13 左弯"
     },
     {
@@ -141,18 +177,22 @@
       "direction": "left",
       "type": "fast",
       "typical_speed_kmh": 101,
+      "expected_lateral_g": 0.65,
+      "expected_brake_g": 0.25,
       "notes": "T14 最后左弯上大直道"
     }
   ],
   "straights": [
     {
       "name": "Start/Finish Straight",
+      "name_cn": "发车直道",
       "start_m": 1920,
       "end_m": 130,
       "typical_top_speed_kmh": 160
     },
     {
       "name": "Back Straight",
+      "name_cn": "后直道",
       "start_m": 630,
       "end_m": 700,
       "typical_top_speed_kmh": 140
