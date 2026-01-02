@@ -1,0 +1,78 @@
+[project]
+name = "racechrono-lap-analyzer"
+version = "0.1.0"
+description = "RaceChrono lap telemetry comparison and analysis tool"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [
+    { name = "RaceChrono Lap Analyzer Contributors" }
+]
+keywords = ["racechrono", "telemetry", "lap", "motorsport", "racing", "analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    "streamlit>=1.28",
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "plotly>=5.18",
+    "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pandas-stubs>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Xuanwo/racechrono-lap-analyzer"
+Repository = "https://github.com/Xuanwo/racechrono-lap-analyzer"
+Issues = "https://github.com/Xuanwo/racechrono-lap-analyzer/issues"
+
+[project.scripts]
+racechrono-lap-analyzer = "racechrono_lap_analyzer.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/racechrono_lap_analyzer"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_return_any = false
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+    "racechrono_lap_analyzer.*",
+    "tests.*",
+]
+disable_error_code = ["arg-type", "operator", "call-overload", "union-attr", "index", "var-annotated", "assignment", "attr-defined"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

@@ -1,0 +1,161 @@
+{
+  "name": "Shanghai Tianma Circuit",
+  "name_cn": "上海天马赛车场",
+  "length_m": 2000,
+  "corners": [
+    {
+      "id": "T1",
+      "start_m": 130,
+      "end_m": 210,
+      "apex_distance_m": 180,
+      "direction": "left",
+      "type": "hairpin",
+      "typical_speed_kmh": 43,
+      "notes": "T1 左发卡弯"
+    },
+    {
+      "id": "T2",
+      "start_m": 300,
+      "end_m": 400,
+      "apex_distance_m": 301,
+      "direction": "right",
+      "type": "medium",
+      "typical_speed_kmh": 111,
+      "notes": "T2 右中速弯"
+    },
+    {
+      "id": "T3",
+      "start_m": 530,
+      "end_m": 630,
+      "apex_distance_m": 614,
+      "direction": "right",
+      "type": "medium",
+      "typical_speed_kmh": 80,
+      "notes": "T3 右中速弯"
+    },
+    {
+      "id": "T4",
+      "start_m": 700,
+      "end_m": 800,
+      "apex_distance_m": 800,
+      "direction": "left",
+      "type": "fast",
+      "typical_speed_kmh": 85,
+      "notes": "T4 快左弯，进入 T4-T5-T6 组合"
+    },
+    {
+      "id": "T5",
+      "start_m": 800,
+      "end_m": 900,
+      "apex_distance_m": 850,
+      "direction": "left",
+      "type": "hairpin",
+      "typical_speed_kmh": 48,
+      "notes": "T5 左发卡弯"
+    },
+    {
+      "id": "T6",
+      "start_m": 900,
+      "end_m": 980,
+      "apex_distance_m": 900,
+      "direction": "left",
+      "type": "medium",
+      "typical_speed_kmh": 88,
+      "notes": "T6 左出弯"
+    },
+    {
+      "id": "T7",
+      "start_m": 1000,
+      "end_m": 1100,
+      "apex_distance_m": 1063,
+      "direction": "right",
+      "type": "medium",
+      "typical_speed_kmh": 86,
+      "notes": "T7 右中速弯"
+    },
+    {
+      "id": "T8",
+      "start_m": 1150,
+      "end_m": 1250,
+      "apex_distance_m": 1216,
+      "direction": "left",
+      "type": "fast",
+      "typical_speed_kmh": 116,
+      "notes": "T8 快左弯"
+    },
+    {
+      "id": "T9",
+      "start_m": 1280,
+      "end_m": 1380,
+      "apex_distance_m": 1299,
+      "direction": "right",
+      "type": "hairpin",
+      "typical_speed_kmh": 44,
+      "notes": "T9 右发卡弯"
+    },
+    {
+      "id": "T10",
+      "start_m": 1400,
+      "end_m": 1480,
+      "apex_distance_m": 1473,
+      "direction": "right",
+      "type": "medium",
+      "typical_speed_kmh": 76,
+      "notes": "T10 右中速弯"
+    },
+    {
+      "id": "T11",
+      "start_m": 1480,
+      "end_m": 1560,
+      "apex_distance_m": 1504,
+      "direction": "left",
+      "type": "medium",
+      "typical_speed_kmh": 68,
+      "notes": "T11 左中速弯"
+    },
+    {
+      "id": "T12",
+      "start_m": 1580,
+      "end_m": 1680,
+      "apex_distance_m": 1585,
+      "direction": "left",
+      "type": "medium",
+      "typical_speed_kmh": 72,
+      "notes": "T12 左中速弯"
+    },
+    {
+      "id": "T13",
+      "start_m": 1700,
+      "end_m": 1800,
+      "apex_distance_m": 1740,
+      "direction": "left",
+      "type": "medium",
+      "typical_speed_kmh": 71,
+      "notes": "T13 左弯"
+    },
+    {
+      "id": "T14",
+      "start_m": 1800,
+      "end_m": 1920,
+      "apex_distance_m": 1800,
+      "direction": "left",
+      "type": "fast",
+      "typical_speed_kmh": 101,
+      "notes": "T14 最后左弯上大直道"
+    }
+  ],
+  "straights": [
+    {
+      "name": "Start/Finish Straight",
+      "start_m": 1920,
+      "end_m": 130,
+      "typical_top_speed_kmh": 160
+    },
+    {
+      "name": "Back Straight",
+      "start_m": 630,
+      "end_m": 700,
+      "typical_top_speed_kmh": 140
+    }
+  ]
+}
