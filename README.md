@@ -10,11 +10,11 @@ A Streamlit web application for analyzing and comparing lap telemetry data expor
 
 | Overview | G-Force Analysis |
 |:---:|:---:|
-| ![Overview](docs/screenshot1.png) | ![G-Force](docs/screenshot2.png) |
+| ![Overview](docs/screenshot1.png) | ![Comparison Charts](docs/screenshot2.png) |
 
 | Track Map & Telemetry | Coach Insights |
 |:---:|:---:|
-| ![Track](docs/screenshot3.png) | ![Insights](docs/screenshot4.png) |
+| ![G-Force](docs/screenshot3.png) | ![Suggestions & Insights](docs/screenshot4.png) |
 
 ## Features
 
