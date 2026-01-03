@@ -6,6 +6,7 @@ Supports multiple lap files with speed, acceleration, and OBD data comparison.
 """
 
 import tempfile
+from itertools import groupby
 from pathlib import Path
 
 import streamlit as st
@@ -586,52 +587,62 @@ def main():
         bottlenecks = find_bottlenecks(laps, threshold_kmh=5.0)
 
         if bottlenecks:
-            # Sort by absolute speed difference
-            bottlenecks.sort(key=lambda x: abs(x.speed_diff_kmh), reverse=True)
+            # Group bottlenecks by lap
+            bottlenecks.sort(key=lambda x: x.lap_name)
+            grouped = {k: list(v) for k, v in groupby(bottlenecks, key=lambda x: x.lap_name)}
 
-            # Filter bottlenecks where driver is slower (time_diff_ms > 0 means slower)
-            slow_bottlenecks = [b for b in bottlenecks if b.time_diff_ms > 0]
+            # Process each lap's bottlenecks
+            for lap_name, lap_bottlenecks in grouped.items():
+                # Find the lap object to get current time
+                lap_obj = next((lap for lap in laps if lap.name == lap_name), None)
 
-            for b in bottlenecks[:10]:  # Top 10
-                icon = "🟢" if b.speed_diff_kmh > 0 else "🔴"
-                time_str = f"+{b.time_diff_ms:.0f}ms" if b.time_diff_ms > 0 else f"{b.time_diff_ms:.0f}ms"
+                # Show lap section header
+                st.markdown(f"#### {t('analysis.bottleneck.lap_section', lap_name=lap_name, ref_name=ref_lap.name)}")
 
-                # Translate category
-                category_key = f"analysis.bottleneck.categories.{b.category}"
-                category_name = t(category_key) if category_key != t(category_key) else b.category
+                # Sort by absolute speed difference
+                lap_bottlenecks.sort(key=lambda x: abs(x.speed_diff_kmh), reverse=True)
 
-                # Get location name (corner or distance)
-                location = get_location_name(b.start_m, b.end_m, b.category)
+                # Filter bottlenecks where driver is slower (time_diff_ms > 0 means slower)
+                slow_bottlenecks = [b for b in lap_bottlenecks if b.time_diff_ms > 0]
 
-                st.markdown(f"""
-                {icon} **{location}** ({category_name})
-                - {t('analysis.bottleneck.speed_delta', delta=b.speed_diff_kmh)}
-                - {t('analysis.bottleneck.time_impact', time=time_str)}
-                - {b.description}
-                """)
+                for b in lap_bottlenecks[:5]:  # Top 5 per lap
+                    icon = "🟢" if b.speed_diff_kmh > 0 else "🔴"
+                    time_str = f"+{b.time_diff_ms:.0f}ms" if b.time_diff_ms > 0 else f"{b.time_diff_ms:.0f}ms"
 
-            # Show potential improvement summary
-            if slow_bottlenecks and len(laps) >= 2:
-                total_time_loss_ms = sum(b.time_diff_ms for b in slow_bottlenecks)
-                total_time_loss_s = total_time_loss_ms / 1000.0
+                    # Translate category
+                    category_key = f"analysis.bottleneck.categories.{b.category}"
+                    category_name = t(category_key) if category_key != t(category_key) else b.category
 
-                # Calculate target lap time
-                compare_lap = laps[1]  # The slower lap being analyzed
-                current_time = compare_lap.lap_time
-                target_time = current_time - total_time_loss_s
+                    # Get location name (corner or distance)
+                    location = get_location_name(b.start_m, b.end_m, b.category)
+
+                    st.markdown(f"""
+                    {icon} **{location}** ({category_name})
+                    - {t('analysis.bottleneck.speed_delta', delta=b.speed_diff_kmh)}
+                    - {t('analysis.bottleneck.time_impact', time=time_str)}
+                    - {b.description}
+                    """)
+
+                # Show potential improvement summary for this lap
+                if slow_bottlenecks and lap_obj:
+                    total_time_loss_ms = sum(b.time_diff_ms for b in slow_bottlenecks)
+                    total_time_loss_s = total_time_loss_ms / 1000.0
+
+                    current_time = lap_obj.lap_time
+                    target_time = current_time - total_time_loss_s
+
+                    st.success(t(
+                        'analysis.bottleneck.potential_summary',
+                        count=len(slow_bottlenecks),
+                        time=f"{total_time_loss_s:.2f}s"
+                    ))
+                    st.info(t(
+                        'analysis.bottleneck.potential_target',
+                        target=format_lap_time(target_time),
+                        current=format_lap_time(current_time)
+                    ))
 
                 st.divider()
-                st.markdown(f"### {t('analysis.bottleneck.potential_header')}")
-                st.success(t(
-                    'analysis.bottleneck.potential_summary',
-                    count=len(slow_bottlenecks),
-                    time=f"{total_time_loss_s:.2f}s"
-                ))
-                st.info(t(
-                    'analysis.bottleneck.potential_target',
-                    target=format_lap_time(target_time),
-                    current=format_lap_time(current_time)
-                ))
         else:
             st.info(t("analysis.bottleneck.no_bottlenecks", threshold=5))
 

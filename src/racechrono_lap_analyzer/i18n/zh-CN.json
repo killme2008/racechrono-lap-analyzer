@@ -145,6 +145,7 @@
       "potential_header": "🚀 潜在提升空间",
       "potential_summary": "如果改善以上 **{count}** 个瓶颈区域，预计可提升 **{time}** 圈速！",
       "potential_target": "目标圈速：**{target}**（当前 {current}）",
+      "lap_section": "{lap_name} vs {ref_name}",
       "categories": {
         "braking": "刹车",
         "cornering": "过弯",

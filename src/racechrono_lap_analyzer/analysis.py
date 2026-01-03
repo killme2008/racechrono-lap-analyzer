@@ -196,6 +196,7 @@ class BottleneckSection:
     time_diff_ms: float  # Time gained/lost in ms
     category: str  # 'braking', 'cornering', 'acceleration', 'top_speed'
     description: str  # Human-readable description
+    lap_name: str = ""  # Name of the lap this bottleneck belongs to
 
 
 @dataclass
@@ -490,7 +491,7 @@ def find_bottlenecks(
 
     bottlenecks = []
 
-    for i, _lap in enumerate(sorted_laps[1:], 1):
+    for i, lap in enumerate(sorted_laps[1:], 1):
         lap_data = aligned[i]
 
         # Calculate speed difference
@@ -554,7 +555,8 @@ def find_bottlenecks(
                             speed_diff_kmh=avg_diff,
                             time_diff_ms=time_diff * 1000,
                             category=category,
-                            description=description
+                            description=description,
+                            lap_name=lap.name
                         ))
 
     return bottlenecks

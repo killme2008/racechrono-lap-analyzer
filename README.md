@@ -6,7 +6,15 @@
 
 A Streamlit web application for analyzing and comparing lap telemetry data exported from RaceChrono Pro.
 
-![Screenshot](docs/screenshot.png)
+## Screenshots
+
+| Overview | G-Force Analysis |
+|:---:|:---:|
+| ![Overview](docs/screenshot1.png) | ![G-Force](docs/screenshot2.png) |
+
+| Track Map & Telemetry | Coach Insights |
+|:---:|:---:|
+| ![Track](docs/screenshot3.png) | ![Insights](docs/screenshot4.png) |
 
 ## Features
 

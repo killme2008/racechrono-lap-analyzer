@@ -145,6 +145,7 @@
       "potential_header": "🚀 Potential Improvement",
       "potential_summary": "Improve the **{count}** bottleneck areas above to gain **{time}** per lap!",
       "potential_target": "Target lap time: **{target}** (current: {current})",
+      "lap_section": "{lap_name} vs {ref_name}",
       "categories": {
         "braking": "braking",
         "cornering": "cornering",
