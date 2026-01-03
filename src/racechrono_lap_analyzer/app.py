@@ -332,8 +332,10 @@ def main():
         # Compute stats for all laps
         all_tire_stats = [(lap, compute_tire_utilization(lap)) for lap in laps]
 
-        def format_with_diff(value: float, ref_value: float, fmt: str = ".2f", suffix: str = "") -> str:
+        def format_with_diff(value: float, ref_value: float | None, fmt: str = ".2f", suffix: str = "") -> str:
             """Format value with difference from reference."""
+            if ref_value is None:
+                return f"{value:{fmt}}{suffix}"
             diff = value - ref_value
             if abs(diff) < 0.01:
                 return f"{value:{fmt}}{suffix}"
