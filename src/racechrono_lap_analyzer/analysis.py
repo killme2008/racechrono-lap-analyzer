@@ -46,6 +46,61 @@ def get_available_tracks() -> list[str]:
     return [f.stem for f in TRACKS_DIR.glob("*.json")]
 
 
+def detect_track(
+    lap_distance: float | None = None,
+    center_lat: float | None = None,
+    center_lon: float | None = None,
+) -> str | None:
+    """
+    Auto-detect track based on GPS location and/or lap distance.
+
+    Priority: GPS location first (more accurate), then lap distance fallback.
+
+    Args:
+        lap_distance: The lap distance in meters (optional)
+        center_lat: Center latitude of the lap GPS data (optional)
+        center_lon: Center longitude of the lap GPS data (optional)
+
+    Returns:
+        Track name if matched, None otherwise
+    """
+    available = get_available_tracks()
+
+    # First try GPS matching (more accurate)
+    if center_lat is not None and center_lon is not None:
+        for track_name in available:
+            config = load_track_config(track_name)
+            if config and "location" in config:
+                loc = config["location"]
+                track_lat = loc.get("latitude")
+                track_lon = loc.get("longitude")
+                radius_km = loc.get("radius_km", 2.0)
+
+                if track_lat and track_lon:
+                    # Simple distance calculation (approximate, good enough for nearby)
+                    # 1 degree latitude ≈ 111km, 1 degree longitude ≈ 111km * cos(lat)
+                    import math
+                    lat_diff = abs(center_lat - track_lat) * 111.0
+                    lon_diff = abs(center_lon - track_lon) * 111.0 * math.cos(math.radians(center_lat))
+                    distance_km = math.sqrt(lat_diff**2 + lon_diff**2)
+
+                    if distance_km <= radius_km:
+                        return track_name
+
+    # Fallback to distance matching
+    if lap_distance is not None:
+        tolerance_pct = 10.0
+        for track_name in available:
+            config = load_track_config(track_name)
+            if config and "length_m" in config:
+                track_length = config["length_m"]
+                diff_pct = abs(lap_distance - track_length) / track_length * 100
+                if diff_pct <= tolerance_pct:
+                    return track_name
+
+    return None
+
+
 def corners_from_track_config(
     df: pd.DataFrame,
     track_config: dict
@@ -511,30 +566,24 @@ def _generate_bottleneck_description(
     start: float,
     end: float
 ) -> str:
-    """Generate human-readable description for a bottleneck."""
+    """Generate human-readable description for a bottleneck using i18n."""
     faster = speed_diff > 0
     abs_diff = abs(speed_diff)
 
-    if category == 'braking':
-        if faster:
-            return f"Later braking point, carrying {abs_diff:.1f} km/h more into corner"
-        else:
-            return f"Earlier braking, {abs_diff:.1f} km/h slower at turn-in"
-    elif category == 'cornering':
-        if faster:
-            return f"Higher corner speed by {abs_diff:.1f} km/h"
-        else:
-            return f"Lower corner speed, losing {abs_diff:.1f} km/h through corner"
-    elif category == 'acceleration':
-        if faster:
-            return f"Better exit acceleration, {abs_diff:.1f} km/h faster"
-        else:
-            return f"Slower exit, losing {abs_diff:.1f} km/h on acceleration"
-    else:  # top_speed
-        if faster:
-            return f"Higher straight-line speed by {abs_diff:.1f} km/h"
-        else:
-            return f"Lower top speed by {abs_diff:.1f} km/h"
+    # Map category + direction to translation key
+    key_map = {
+        ('braking', True): 'brake_later',
+        ('braking', False): 'brake_earlier',
+        ('cornering', True): 'corner_faster',
+        ('cornering', False): 'corner_slower',
+        ('acceleration', True): 'exit_faster',
+        ('acceleration', False): 'exit_slower',
+        ('top_speed', True): 'straight_faster',
+        ('top_speed', False): 'straight_slower',
+    }
+
+    key = key_map.get((category, faster), 'corner_slower')
+    return t(f'analysis.bottleneck.descriptions.{key}', diff=abs_diff)
 
 
 def analyze_racing_technique(laps: list[LapData]) -> list[RacingInsight]:

@@ -16,6 +16,7 @@ from racechrono_lap_analyzer.analysis import (
     compute_tire_utilization,
     corners_from_track_config,
     detect_corners,
+    detect_track,
     find_bottlenecks,
     generate_coach_insights,
     get_available_tracks,
@@ -325,54 +326,50 @@ def main():
                 obd_status = f"✅ {t('metadata.obd_available')}" if lap.has_obd_data else f"❌ {t('metadata.obd_not_available')}"
                 st.text(obd_status)
 
-    # === Tire Utilization Analysis ===
+    # === Tire Utilization Analysis (All Laps Comparison) ===
     with st.expander(f"📊 {t('statistics.header')}", expanded=True):
-        tire_stats = compute_tire_utilization(ref_lap)
+        # Compute stats for all laps
+        all_tire_stats = [(lap, compute_tire_utilization(lap)) for lap in laps]
 
-        def get_rating_display(rating: str, metric: str) -> str:
-            """Get rating display text with hint."""
-            rating_text = t(f"statistics.ratings.{rating}")
-            hint = t(f"statistics.hints.{metric}_{rating}")
-            return f"{rating_text} - {hint}"
+        def format_with_diff(value: float, ref_value: float, fmt: str = ".2f", suffix: str = "") -> str:
+            """Format value with difference from reference."""
+            diff = value - ref_value
+            if abs(diff) < 0.01:
+                return f"{value:{fmt}}{suffix}"
+            sign = "+" if diff > 0 else ""
+            return f"{value:{fmt}}{suffix} ({sign}{diff:{fmt}})"
 
-        stat_data = [
-            {
-                t("statistics.metric"): t("statistics.avg_combined_g"),
-                t("statistics.value"): f"{tire_stats.avg_combined_g:.2f} G",
-                t("statistics.rating"): "—"
-            },
-            {
-                t("statistics.metric"): t("statistics.max_combined_g"),
-                t("statistics.value"): f"{tire_stats.max_combined_g:.2f} G",
-                t("statistics.rating"): "—"
-            },
-            {
-                t("statistics.metric"): t("statistics.high_g_percentage"),
-                t("statistics.value"): f"{tire_stats.high_g_percentage:.1f}%",
-                t("statistics.rating"): get_rating_display(tire_stats.high_g_rating, "high_g")
-            },
-            {
-                t("statistics.metric"): t("statistics.trail_brake_percentage"),
-                t("statistics.value"): f"{tire_stats.trail_brake_percentage:.1f}%",
-                t("statistics.rating"): get_rating_display(tire_stats.trail_brake_rating, "trail_brake")
-            },
+        # Build comparison table - metrics as rows, laps as columns
+        metrics = [
+            ("avg_combined_g", t("statistics.avg_combined_g"), ".2f", " G"),
+            ("max_combined_g", t("statistics.max_combined_g"), ".2f", " G"),
+            ("high_g_percentage", t("statistics.high_g_percentage"), ".1f", "%"),
+            ("trail_brake_percentage", t("statistics.trail_brake_percentage"), ".1f", "%"),
         ]
 
-        # Add throttle if OBD data available
-        if tire_stats.full_throttle_percentage is not None and tire_stats.throttle_rating:
-            stat_data.append({
-                t("statistics.metric"): t("statistics.full_throttle_percentage"),
-                t("statistics.value"): f"{tire_stats.full_throttle_percentage:.1f}%",
-                t("statistics.rating"): get_rating_display(tire_stats.throttle_rating, "throttle")
-            })
-        else:
-            stat_data.append({
-                t("statistics.metric"): t("statistics.full_throttle_percentage"),
-                t("statistics.value"): "—",
-                t("statistics.rating"): t("statistics.hints.no_obd")
-            })
+        # Check if any lap has throttle data
+        has_throttle = any(s.full_throttle_percentage is not None for _, s in all_tire_stats)
+        if has_throttle:
+            metrics.append(("full_throttle_percentage", t("statistics.full_throttle_percentage"), ".1f", "%"))
 
-        st.dataframe(stat_data, use_container_width=True, hide_index=True)
+        comparison_data = []
+        ref_stats = all_tire_stats[0][1]  # Reference lap stats
+
+        for attr, label, fmt, suffix in metrics:
+            row = {t("statistics.metric"): label}
+            for i, (lap, stats) in enumerate(all_tire_stats):
+                value = getattr(stats, attr)
+                ref_value = getattr(ref_stats, attr)
+                if value is None:
+                    row[lap.name] = "—"
+                elif i == 0:  # Reference lap
+                    row[lap.name] = f"{value:{fmt}}{suffix} ⭐"
+                else:
+                    row[lap.name] = format_with_diff(value, ref_value, fmt, suffix)
+            comparison_data.append(row)
+
+        st.dataframe(comparison_data, width="stretch", hide_index=True)
+        st.caption(f"⭐ = {t('summary.reference')}")
 
     st.divider()
 
@@ -389,55 +386,81 @@ def main():
     # Tab 1: Overview (Speed + Time Delta)
     with tab_overview:
         speed_chart = create_speed_comparison_chart(laps, show_delta=show_delta)
-        st.plotly_chart(speed_chart, use_container_width=True)
+        st.plotly_chart(speed_chart, width="stretch")
 
         if show_time_delta and len(laps) >= 2:
             time_delta_chart = create_time_delta_chart(laps)
             if time_delta_chart:
-                st.plotly_chart(time_delta_chart, use_container_width=True)
+                st.plotly_chart(time_delta_chart, width="stretch")
 
     # Tab 2: G-Force (Acceleration + G-G Diagram)
     with tab_gforce:
         accel_chart = create_acceleration_chart(laps)
-        st.plotly_chart(accel_chart, use_container_width=True)
+        st.plotly_chart(accel_chart, width="stretch")
 
         if show_gg:
             st.markdown("---")
             gg_chart = create_gg_diagram(laps)
-            st.plotly_chart(gg_chart, use_container_width=True)
+            st.plotly_chart(gg_chart, width="stretch")
 
-            # GG Diagram Insights
-            gg_insights = analyze_gg_diagram(ref_lap)
-            if gg_insights.insights:
-                st.markdown(f"**🎯 {t('gg_analysis.header')}**")
-                for insight in gg_insights.insights:
-                    st.markdown(f"- {insight}")
+            # GG Diagram Insights - Compare all laps
+            all_gg_insights = [(lap, analyze_gg_diagram(lap)) for lap in laps]
 
-            # Show quadrant percentages
-            with st.expander(t("gg_analysis.header") + " - Details", expanded=False):
-                quadrant_data = [
-                    {
-                        "Quadrant": t("gg_analysis.quadrants.brake_left"),
-                        "%": f"{gg_insights.brake_left_pct:.1f}%"
-                    },
-                    {
-                        "Quadrant": t("gg_analysis.quadrants.brake_right"),
-                        "%": f"{gg_insights.brake_right_pct:.1f}%"
-                    },
-                    {
-                        "Quadrant": t("gg_analysis.quadrants.accel_left"),
-                        "%": f"{gg_insights.accel_left_pct:.1f}%"
-                    },
-                    {
-                        "Quadrant": t("gg_analysis.quadrants.accel_right"),
-                        "%": f"{gg_insights.accel_right_pct:.1f}%"
-                    },
+            # Show comparison table
+            with st.expander(f"🎯 {t('gg_analysis.header')}", expanded=False):
+                ref_gg = all_gg_insights[0][1]
+
+                def fmt_gg_diff(value: float, ref_value: float) -> str:
+                    diff = value - ref_value
+                    if abs(diff) < 0.01:
+                        return f"{value:.2f}G"
+                    sign = "+" if diff > 0 else ""
+                    return f"{value:.2f}G ({sign}{diff:.2f})"
+
+                def fmt_pct_diff(value: float, ref_value: float) -> str:
+                    diff = value - ref_value
+                    if abs(diff) < 0.1:
+                        return f"{value:.1f}%"
+                    sign = "+" if diff > 0 else ""
+                    return f"{value:.1f}% ({sign}{diff:.1f})"
+
+                # Build comparison data
+                gg_metrics = [
+                    ("left_turn_avg_g", t("gg_analysis.left_turn"), "g"),
+                    ("right_turn_avg_g", t("gg_analysis.right_turn"), "g"),
+                    ("brake_left_pct", t("gg_analysis.quadrants.brake_left"), "pct"),
+                    ("brake_right_pct", t("gg_analysis.quadrants.brake_right"), "pct"),
+                    ("accel_left_pct", t("gg_analysis.quadrants.accel_left"), "pct"),
+                    ("accel_right_pct", t("gg_analysis.quadrants.accel_right"), "pct"),
                 ]
-                st.dataframe(quadrant_data, use_container_width=True, hide_index=True)
 
-                # Left/right balance
-                st.markdown(f"**{t('gg_analysis.left_turn')}**: {gg_insights.left_turn_avg_g:.2f}G avg | "
-                           f"**{t('gg_analysis.right_turn')}**: {gg_insights.right_turn_avg_g:.2f}G avg")
+                gg_comparison = []
+                for attr, label, fmt_type in gg_metrics:
+                    row = {t("statistics.metric"): label}
+                    for i, (lap, gg) in enumerate(all_gg_insights):
+                        value = getattr(gg, attr)
+                        ref_value = getattr(ref_gg, attr)
+                        if i == 0:
+                            if fmt_type == "g":
+                                row[lap.name] = f"{value:.2f}G ⭐"
+                            else:
+                                row[lap.name] = f"{value:.1f}% ⭐"
+                        else:
+                            if fmt_type == "g":
+                                row[lap.name] = fmt_gg_diff(value, ref_value)
+                            else:
+                                row[lap.name] = fmt_pct_diff(value, ref_value)
+                    gg_comparison.append(row)
+
+                st.dataframe(gg_comparison, width="stretch", hide_index=True)
+                st.caption(f"⭐ = {t('summary.reference')}")
+
+                # Show insights for each lap
+                for lap, gg in all_gg_insights:
+                    if gg.insights:
+                        st.markdown(f"**{lap.name}:**")
+                        for insight in gg.insights:
+                            st.markdown(f"- {insight}")
 
     # Tab 3: Telemetry (Throttle/Brake/RPM if available)
     with tab_telemetry:
@@ -446,12 +469,12 @@ def main():
         throttle_chart = create_throttle_brake_chart(laps)
         if throttle_chart:
             has_telemetry = True
-            st.plotly_chart(throttle_chart, use_container_width=True)
+            st.plotly_chart(throttle_chart, width="stretch")
 
         rpm_chart = create_rpm_chart(laps)
         if rpm_chart:
             has_telemetry = True
-            st.plotly_chart(rpm_chart, use_container_width=True)
+            st.plotly_chart(rpm_chart, width="stretch")
 
         if not has_telemetry:
             st.info(t("charts.throttle_brake.no_data") if "charts.throttle_brake.no_data" in t("charts.throttle_brake.no_data") else
@@ -462,17 +485,24 @@ def main():
         if show_track_map:
             try:
                 track_map = create_track_map(laps)
-                st.plotly_chart(track_map, use_container_width=True)
+                st.plotly_chart(track_map, width="stretch")
             except Exception as e:
                 st.warning(f"Could not create track map: {e}")
 
         # Corner analysis moved here
-        with st.expander(f"🔄 {t('corners.header')}", expanded=True):
+        with st.expander(f"🔄 {t('corners.header')} - {ref_lap.name}", expanded=True):
             if laps:
                 # Use track config if selected, otherwise auto-detect
                 track_config = None
                 if selected_track != t("app.sidebar.auto_detect"):
                     track_config = load_track_config(selected_track)
+                else:
+                    # Try to auto-detect track based on GPS and lap distance
+                    center_lat = ref_lap.df['latitude'].mean() if 'latitude' in ref_lap.df.columns else None
+                    center_lon = ref_lap.df['longitude'].mean() if 'longitude' in ref_lap.df.columns else None
+                    detected = detect_track(ref_lap.lap_distance, center_lat, center_lon)
+                    if detected:
+                        track_config = load_track_config(detected)
 
                 if track_config:
                     corners = corners_from_track_config(ref_lap.df, track_config)
@@ -496,7 +526,7 @@ def main():
                             t("corners.table.brake"): f"{c.brake_point:.0f}m",
                         })
 
-                    st.dataframe(corner_data, use_container_width=True, hide_index=True)
+                    st.dataframe(corner_data, width="stretch", hide_index=True)
                 else:
                     st.info(t("corners.no_corners"))
 
@@ -509,11 +539,58 @@ def main():
     if len(laps) >= 2:
         st.subheader(f"🎯 {t('analysis.bottleneck.header')}")
 
+        # Load track config for corner mapping (auto-detect if needed)
+        bottleneck_track_cfg = None
+        if selected_track != t("app.sidebar.auto_detect"):
+            bottleneck_track_cfg = load_track_config(selected_track)
+        else:
+            # Try to auto-detect track based on GPS and lap distance
+            center_lat = ref_lap.df['latitude'].mean() if 'latitude' in ref_lap.df.columns else None
+            center_lon = ref_lap.df['longitude'].mean() if 'longitude' in ref_lap.df.columns else None
+            detected = detect_track(ref_lap.lap_distance, center_lat, center_lon)
+            if detected:
+                bottleneck_track_cfg = load_track_config(detected)
+
+        def get_location_name(start_m: float, end_m: float, category: str) -> str:
+            """Map distance range to corner name with phase."""
+            if bottleneck_track_cfg and "corners" in bottleneck_track_cfg:
+                mid_point = (start_m + end_m) / 2
+                corners = bottleneck_track_cfg["corners"]
+
+                for corner in corners:
+                    corner_start = corner.get("start_m", 0)
+                    corner_end = corner.get("end_m", 0)
+                    apex = corner.get("apex_distance_m", (corner_start + corner_end) / 2)
+
+                    # Check if bottleneck overlaps with this corner
+                    if start_m <= corner_end and end_m >= corner_start:
+                        corner_id = corner.get("id", "?")
+
+                        # Determine phase based on category and position
+                        if category == "braking":
+                            phase = t("analysis.bottleneck.phase.entry")
+                        elif category == "acceleration":
+                            phase = t("analysis.bottleneck.phase.exit")
+                        elif mid_point < apex - 10:
+                            phase = t("analysis.bottleneck.phase.entry")
+                        elif mid_point > apex + 10:
+                            phase = t("analysis.bottleneck.phase.exit")
+                        else:
+                            phase = t("analysis.bottleneck.phase.apex")
+
+                        return t("analysis.bottleneck.location_corner", corner=corner_id, phase=phase)
+
+            # Fallback to distance range
+            return t("analysis.bottleneck.location_distance", start=start_m, end=end_m)
+
         bottlenecks = find_bottlenecks(laps, threshold_kmh=5.0)
 
         if bottlenecks:
             # Sort by absolute speed difference
             bottlenecks.sort(key=lambda x: abs(x.speed_diff_kmh), reverse=True)
+
+            # Filter bottlenecks where driver is slower (time_diff_ms > 0 means slower)
+            slow_bottlenecks = [b for b in bottlenecks if b.time_diff_ms > 0]
 
             for b in bottlenecks[:10]:  # Top 10
                 icon = "🟢" if b.speed_diff_kmh > 0 else "🔴"
@@ -523,12 +600,38 @@ def main():
                 category_key = f"analysis.bottleneck.categories.{b.category}"
                 category_name = t(category_key) if category_key != t(category_key) else b.category
 
+                # Get location name (corner or distance)
+                location = get_location_name(b.start_m, b.end_m, b.category)
+
                 st.markdown(f"""
-                {icon} **{b.start_m:.0f}m - {b.end_m:.0f}m** ({category_name})
+                {icon} **{location}** ({category_name})
                 - {t('analysis.bottleneck.speed_delta', delta=b.speed_diff_kmh)}
                 - {t('analysis.bottleneck.time_impact', time=time_str)}
                 - {b.description}
                 """)
+
+            # Show potential improvement summary
+            if slow_bottlenecks and len(laps) >= 2:
+                total_time_loss_ms = sum(b.time_diff_ms for b in slow_bottlenecks)
+                total_time_loss_s = total_time_loss_ms / 1000.0
+
+                # Calculate target lap time
+                compare_lap = laps[1]  # The slower lap being analyzed
+                current_time = compare_lap.lap_time
+                target_time = current_time - total_time_loss_s
+
+                st.divider()
+                st.markdown(f"### {t('analysis.bottleneck.potential_header')}")
+                st.success(t(
+                    'analysis.bottleneck.potential_summary',
+                    count=len(slow_bottlenecks),
+                    time=f"{total_time_loss_s:.2f}s"
+                ))
+                st.info(t(
+                    'analysis.bottleneck.potential_target',
+                    target=format_lap_time(target_time),
+                    current=format_lap_time(current_time)
+                ))
         else:
             st.info(t("analysis.bottleneck.no_bottlenecks", threshold=5))
 
@@ -537,10 +640,16 @@ def main():
         st.subheader(f"🎯 {t('analysis.coach.header')}")
         st.caption(t("analysis.coach.comparing", lap1=laps[1].name, lap2=ref_lap.name))
 
-        # Load track config if selected
+        # Load track config if selected or auto-detect
         track_cfg = None
         if selected_track != t("app.sidebar.auto_detect"):
             track_cfg = load_track_config(selected_track)
+        else:
+            center_lat = ref_lap.df['latitude'].mean() if 'latitude' in ref_lap.df.columns else None
+            center_lon = ref_lap.df['longitude'].mean() if 'longitude' in ref_lap.df.columns else None
+            detected = detect_track(ref_lap.lap_distance, center_lat, center_lon)
+            if detected:
+                track_cfg = load_track_config(detected)
 
         coach_insights = generate_coach_insights(
             ref_lap, laps[1],
@@ -563,10 +672,10 @@ def main():
                     t("coach_table.problem"): ci.problem,
                 })
 
-            st.dataframe(coach_data, use_container_width=True, hide_index=True)
+            st.dataframe(coach_data, width="stretch", hide_index=True)
 
             # Also show detailed suggestions in expander
-            with st.expander(t("coach_table.suggestion") + "s", expanded=False):
+            with st.expander(t("coach_table.suggestions"), expanded=False):
                 for ci in coach_insights:
                     priority_icon = {1: "🥇", 2: "🥈", 3: "🥉"}.get(ci.priority, "📍")
                     st.markdown(f"**{priority_icon} {ci.location}**: {ci.suggestion}")
@@ -576,7 +685,8 @@ def main():
     st.divider()
 
     # Detailed Racing insights (collapsible)
-    with st.expander(f"📊 {t('analysis.technique.header')}"):
+    lap_names = ", ".join([lap.name for lap in laps])
+    with st.expander(f"📊 {t('analysis.technique.header')} ({lap_names})"):
         insights = analyze_racing_technique(laps)
 
         if insights:

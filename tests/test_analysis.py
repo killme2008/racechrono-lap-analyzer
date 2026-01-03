@@ -14,6 +14,7 @@ from racechrono_lap_analyzer.analysis import (
     compute_tire_utilization,
     corners_from_track_config,
     detect_corners,
+    detect_track,
     find_bottlenecks,
     generate_coach_insights,
     get_available_tracks,
@@ -147,6 +148,47 @@ class TrackConfigTests(unittest.TestCase):
         # First corner should be T1 (left hairpin around 180m)
         self.assertEqual(corners[0].direction, "left")
         self.assertAlmostEqual(corners[0].apex_distance, 180, delta=10)
+
+
+class DetectTrackTests(unittest.TestCase):
+    def test_detect_track_by_gps(self) -> None:
+        # Tianma GPS coordinates
+        result = detect_track(center_lat=31.0775, center_lon=121.1155)
+        self.assertEqual(result, "tianma")
+
+    def test_detect_track_by_gps_nearby(self) -> None:
+        # Slightly off but within radius
+        result = detect_track(center_lat=31.078, center_lon=121.116)
+        self.assertEqual(result, "tianma")
+
+    def test_detect_track_by_distance_fallback(self) -> None:
+        # No GPS, but distance matches Tianma (~2000m)
+        result = detect_track(lap_distance=2000)
+        self.assertEqual(result, "tianma")
+
+    def test_detect_track_with_tolerance(self) -> None:
+        # Should match with 10% tolerance
+        result = detect_track(lap_distance=2100)  # 5% off
+        self.assertEqual(result, "tianma")
+
+        result = detect_track(lap_distance=1900)  # 5% off
+        self.assertEqual(result, "tianma")
+
+    def test_detect_track_no_match(self) -> None:
+        # Way off - should not match any track
+        result = detect_track(lap_distance=5000)
+        self.assertIsNone(result)
+
+        # Wrong GPS location
+        result = detect_track(center_lat=40.0, center_lon=116.0)
+        self.assertIsNone(result)
+
+    def test_detect_track_from_real_lap(self) -> None:
+        lap = load_lap(str(LAP13_CSV))
+        center_lat = lap.df['latitude'].mean()
+        center_lon = lap.df['longitude'].mean()
+        result = detect_track(lap.lap_distance, center_lat, center_lon)
+        self.assertEqual(result, "tianma")
 
 
 class FindBottlenecksTests(unittest.TestCase):

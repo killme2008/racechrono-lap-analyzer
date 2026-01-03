@@ -142,6 +142,9 @@
       "no_bottlenecks": "No significant bottlenecks detected (threshold: {threshold} km/h difference)",
       "speed_delta": "Speed delta: {delta:+.1f} km/h",
       "time_impact": "Time impact: {time}",
+      "potential_header": "🚀 Potential Improvement",
+      "potential_summary": "Improve the **{count}** bottleneck areas above to gain **{time}** per lap!",
+      "potential_target": "Target lap time: **{target}** (current: {current})",
       "categories": {
         "braking": "braking",
         "cornering": "cornering",
@@ -157,7 +160,15 @@
         "exit_slower": "Slower exit, losing {diff:.1f} km/h on acceleration",
         "straight_faster": "Higher straight-line speed by {diff:.1f} km/h",
         "straight_slower": "Lower top speed by {diff:.1f} km/h"
-      }
+      },
+      "phase": {
+        "entry": "Entry",
+        "apex": "Apex",
+        "exit": "Exit",
+        "straight": "Straight"
+      },
+      "location_corner": "{corner} {phase}",
+      "location_distance": "{start:.0f}m - {end:.0f}m"
     },
     "coach": {
       "header": "Coach Suggestions",
@@ -308,6 +319,7 @@
     "risk": "Risk",
     "problem": "Problem",
     "suggestion": "Suggestion",
+    "suggestions": "Detailed Suggestions",
     "difficulty_levels": {
       "low": "Low",
       "medium": "Med",

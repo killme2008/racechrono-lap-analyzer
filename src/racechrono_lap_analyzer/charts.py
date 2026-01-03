@@ -59,8 +59,8 @@ def create_speed_comparison_chart(
         rows=2 if show_delta and len(laps) >= 2 else 1,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.08,
-        row_heights=[0.7, 0.3] if show_delta and len(laps) >= 2 else [1.0],
+        vertical_spacing=0.12,
+        row_heights=[0.65, 0.35] if show_delta and len(laps) >= 2 else [1.0],
         subplot_titles=[t('charts.speed.title'), t('charts.speed.delta_title')] if show_delta and len(laps) >= 2 else [t('charts.speed.title')]
     )
 
@@ -148,12 +148,19 @@ def create_speed_comparison_chart(
     )
 
     fig.update_layout(
-        height=550,
+        height=650,
         hovermode='x unified',
-        legend={'orientation': 'h', 'yanchor': 'bottom', 'y': 1.02},
-        margin={'l': 50, 'r': 50, 't': 60, 'b': 50},
+        legend={'orientation': 'h', 'yanchor': 'bottom', 'y': 1.08, 'x': 0.5, 'xanchor': 'center'},
+        margin={'l': 50, 'r': 50, 't': 100, 'b': 50},
         template='plotly_white'
     )
+
+    # Move subplot titles down to avoid legend overlap
+    for annotation in fig['layout']['annotations']:
+        if annotation['text'] == t('charts.speed.title'):
+            annotation['y'] = 0.95  # Move speed title down
+        elif annotation['text'] == t('charts.speed.delta_title'):
+            annotation['y'] = 0.32  # Adjust delta title position
 
     return fig
 

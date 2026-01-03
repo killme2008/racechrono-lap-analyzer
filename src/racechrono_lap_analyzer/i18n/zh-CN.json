@@ -142,6 +142,9 @@
       "no_bottlenecks": "未检测到明显瓶颈（阈值：{threshold} km/h 差异）",
       "speed_delta": "速度差：{delta:+.1f} km/h",
       "time_impact": "时间影响：{time}",
+      "potential_header": "🚀 潜在提升空间",
+      "potential_summary": "如果改善以上 **{count}** 个瓶颈区域，预计可提升 **{time}** 圈速！",
+      "potential_target": "目标圈速：**{target}**（当前 {current}）",
       "categories": {
         "braking": "刹车",
         "cornering": "过弯",
@@ -157,7 +160,15 @@
         "exit_slower": "出弯较慢，损失 {diff:.1f} km/h",
         "straight_faster": "直道速度快 {diff:.1f} km/h",
         "straight_slower": "直道极速低 {diff:.1f} km/h"
-      }
+      },
+      "phase": {
+        "entry": "入弯",
+        "apex": "弯心",
+        "exit": "出弯",
+        "straight": "直道"
+      },
+      "location_corner": "{corner} {phase}",
+      "location_distance": "{start:.0f}m - {end:.0f}m"
     },
     "coach": {
       "header": "教练建议",
@@ -308,6 +319,7 @@
     "risk": "风险",
     "problem": "问题",
     "suggestion": "建议",
+    "suggestions": "详细建议",
     "difficulty_levels": {
       "low": "低",
       "medium": "中",

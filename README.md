@@ -15,8 +15,11 @@ A Streamlit web application for analyzing and comparing lap telemetry data expor
 - **G-force visualization**: Lateral and longitudinal acceleration charts, G-G diagram (friction circle)
 - **Track map**: GPS-based track visualization with speed coloring
 - **Corner detection**: Automatic corner detection or use predefined track configurations
-- **Coach insights**: Prioritized suggestions for lap time improvement
+- **Coach insights**: Prioritized suggestions with difficulty/risk ratings for lap time improvement
+- **Tire utilization analysis**: High-G percentage, trail braking stats, throttle application metrics
+- **G-G diagram insights**: Left/right turn balance analysis, quadrant fill rate analysis
 - **OBD support**: Throttle, brake, and RPM visualization when OBD data is available
+- **Multi-language**: English and Chinese (简体中文) support
 
 ## Installation
 
@@ -100,6 +103,7 @@ racechrono-lap-analyzer/
 │       ├── analysis.py      # Lap alignment, corner detection, insights
 │       ├── charts.py        # Plotly chart generation
 │       ├── data_parser.py   # RaceChrono CSV parsing
+│       ├── i18n/            # Internationalization (en, zh-CN)
 │       └── tracks/          # Track configuration files
 ├── tests/
 │   ├── data/                # Test CSV files

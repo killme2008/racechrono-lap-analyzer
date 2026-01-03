@@ -2,6 +2,11 @@
   "name": "Shanghai Tianma Circuit",
   "name_cn": "上海天马赛车场",
   "length_m": 2000,
+  "location": {
+    "latitude": 31.0775,
+    "longitude": 121.1155,
+    "radius_km": 1.0
+  },
   "corners": [
     {
       "id": "T1",
