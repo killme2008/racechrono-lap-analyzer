@@ -96,6 +96,12 @@
     },
     "track_map": {
       "title": "Track Map (Color = Speed)",
+      "view_mode": "View Mode",
+      "mode_line_comparison": "Line Comparison",
+      "mode_speed_coloring": "Speed Coloring",
+      "line_comparison_title": "Track Line Comparison",
+      "deviation_zone": "Deviation Zone",
+      "offset_tooltip": "Offset: {offset:.1f}m",
       "no_gps": "No GPS data available",
       "start": "Start"
     },

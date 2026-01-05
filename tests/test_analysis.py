@@ -416,5 +416,81 @@ class CoachInsightDifficultyRiskTests(unittest.TestCase):
             self.assertIn(insight.risk, valid_levels)
 
 
+class HaversineDistanceTests(unittest.TestCase):
+    def test_haversine_same_point_is_zero(self) -> None:
+        from racechrono_lap_analyzer.analysis import haversine_distance
+
+        dist = haversine_distance(31.0, 121.0, 31.0, 121.0)
+        self.assertEqual(dist, 0.0)
+
+    def test_haversine_small_distance(self) -> None:
+        from racechrono_lap_analyzer.analysis import haversine_distance
+
+        # ~111m difference (0.001 degree lat)
+        dist = haversine_distance(31.0, 121.0, 31.001, 121.0)
+        self.assertAlmostEqual(dist, 111, delta=5)
+
+    def test_haversine_known_distance(self) -> None:
+        from racechrono_lap_analyzer.analysis import haversine_distance
+
+        # Shanghai to Beijing ~1068km
+        dist = haversine_distance(31.23, 121.47, 39.90, 116.40)
+        self.assertAlmostEqual(dist, 1068000, delta=10000)
+
+
+class LineDeviationTests(unittest.TestCase):
+    def test_deviation_identical_laps_is_zero(self) -> None:
+        from racechrono_lap_analyzer.analysis import compute_line_deviations
+
+        lap = load_lap(str(LAP9_CSV))
+        offsets = compute_line_deviations(lap, lap)
+
+        # Identical lap should have near-zero offset
+        valid_offsets = offsets.dropna()
+        if len(valid_offsets) > 0:
+            self.assertTrue((valid_offsets < 0.1).all())  # < 10cm
+
+    def test_deviation_real_laps_reasonable_range(self) -> None:
+        from racechrono_lap_analyzer.analysis import compute_line_deviations
+
+        lap9 = load_lap(str(LAP9_CSV))
+        lap13 = load_lap(str(LAP13_CSV))
+        offsets = compute_line_deviations(lap9, lap13)
+
+        # Racing line differences can be up to ~20m in extreme cases
+        valid_offsets = offsets.dropna()
+        if len(valid_offsets) > 0:
+            self.assertLess(valid_offsets.max(), 25.0)  # Max < 25m
+            self.assertGreater(valid_offsets.max(), 0.01)  # Should have some difference
+
+
+class DeviationZoneTests(unittest.TestCase):
+    def test_detect_zones_filters_by_threshold(self) -> None:
+        from racechrono_lap_analyzer.analysis import detect_deviation_zones
+
+        offsets = pd.Series([0.5, 0.5, 2.0, 2.5, 2.0, 0.5, 0.5], index=range(7))
+        zones = detect_deviation_zones(offsets, threshold_m=1.0, min_length_m=1.0)
+
+        self.assertGreater(len(zones), 0)
+        self.assertGreater(zones[0].max_offset_m, 1.0)
+
+    def test_detect_zones_filters_short(self) -> None:
+        from racechrono_lap_analyzer.analysis import detect_deviation_zones
+
+        # Zone shorter than min_length should be filtered
+        offsets = pd.Series([0] * 50 + [2] * 5 + [0] * 50, index=range(105))
+        zones = detect_deviation_zones(offsets, threshold_m=1.0, min_length_m=10)
+
+        self.assertEqual(len(zones), 0)
+
+    def test_detect_zones_empty_input(self) -> None:
+        from racechrono_lap_analyzer.analysis import detect_deviation_zones
+
+        offsets = pd.Series(dtype=float)
+        zones = detect_deviation_zones(offsets)
+
+        self.assertEqual(len(zones), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

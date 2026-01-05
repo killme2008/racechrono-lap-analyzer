@@ -450,6 +450,182 @@ def create_track_map(laps: list[LapData]) -> go.Figure:
     return fig
 
 
+def create_track_line_comparison(
+    laps: list[LapData],
+    mode: str = "line_comparison",
+    highlight_deviations: bool = True,
+    deviation_threshold_m: float = 1.0
+) -> go.Figure:
+    """
+    Create track map with line comparison or speed coloring mode.
+
+    Args:
+        laps: List of LapData objects to compare
+        mode: "line_comparison" (distinct colors per lap) or "speed_coloring" (existing behavior)
+        highlight_deviations: Whether to highlight deviation zones in line_comparison mode
+        deviation_threshold_m: Minimum offset to consider as deviation (default 1m)
+
+    Returns:
+        Plotly Figure with track visualization
+    """
+    from racechrono_lap_analyzer.analysis import (
+        compute_line_deviations,
+        detect_deviation_zones,
+    )
+
+    # For speed_coloring mode, use existing function
+    if mode == "speed_coloring":
+        return create_track_map(laps)
+
+    # Line comparison mode
+    fig = go.Figure()
+
+    center_lats = []
+    center_lons = []
+    has_gps_data = False
+
+    # First pass: draw base lines for each lap
+    for i, lap in enumerate(laps):
+        df = lap.df
+
+        if 'latitude' not in df.columns or 'longitude' not in df.columns:
+            continue
+
+        coords = df[['latitude', 'longitude']].dropna()
+        if coords.empty:
+            continue
+
+        has_gps_data = True
+        lat = list(coords['latitude'].values)
+        lon = list(coords['longitude'].values)
+        color = LAP_COLORS[i % len(LAP_COLORS)]
+
+        # Track line
+        fig.add_trace(
+            go.Scattermapbox(
+                lat=lat,
+                lon=lon,
+                mode='lines',
+                line={'width': 3, 'color': color},
+                name=lap.name,
+                hovertemplate=f'{lap.name}<extra></extra>',
+            )
+        )
+
+        # Start marker
+        fig.add_trace(
+            go.Scattermapbox(
+                lat=[lat[0]],
+                lon=[lon[0]],
+                mode='markers',
+                marker={'size': 10, 'color': 'green', 'symbol': 'circle'},
+                name=t('charts.track_map.start') if i == 0 else '',
+                showlegend=i == 0,
+                hoverinfo='skip'
+            )
+        )
+
+        center_lats.append(coords['latitude'].mean())
+        center_lons.append(coords['longitude'].mean())
+
+    # Second pass: highlight deviation zones (if enabled and 2+ laps)
+    if highlight_deviations and len(laps) >= 2 and has_gps_data:
+        ref_lap = laps[0]
+
+        for i, cmp_lap in enumerate(laps[1:], start=1):
+            # Compute deviations
+            offsets = compute_line_deviations(ref_lap, cmp_lap)
+
+            if offsets.empty:
+                continue
+
+            # Detect deviation zones
+            zones = detect_deviation_zones(
+                offsets,
+                threshold_m=deviation_threshold_m,
+                min_length_m=10.0,
+                merge_gap_m=20.0,
+                max_zones=10
+            )
+
+            if not zones:
+                continue
+
+            # Get aligned data for GPS coordinates
+            from racechrono_lap_analyzer.analysis import align_laps
+            distances, aligned = align_laps([ref_lap, cmp_lap], resolution_m=1.0)
+
+            if len(aligned) < 2:
+                continue
+
+            cmp_df = aligned[1]
+            color = LAP_COLORS[i % len(LAP_COLORS)]
+
+            # Highlight each zone with thicker line
+            for zone in zones:
+                # Find indices for this zone
+                zone_mask = (distances >= zone.start_m) & (distances <= zone.end_m)
+                zone_indices = np.where(zone_mask)[0]
+
+                if len(zone_indices) == 0:
+                    continue
+
+                zone_lats = cmp_df.iloc[zone_indices]['latitude'].dropna().tolist()
+                zone_lons = cmp_df.iloc[zone_indices]['longitude'].dropna().tolist()
+
+                if not zone_lats or not zone_lons:
+                    continue
+
+                # Draw highlighted segment
+                fig.add_trace(
+                    go.Scattermapbox(
+                        lat=zone_lats,
+                        lon=zone_lons,
+                        mode='lines',
+                        line={'width': 8, 'color': hex_to_rgba(color, 0.6)},
+                        name=f"{t('charts.track_map.deviation_zone')} ({zone.max_offset_m:.1f}m)",
+                        showlegend=False,
+                        hovertemplate=(
+                            f"{cmp_lap.name}<br>"
+                            f"{t('charts.track_map.offset_tooltip').format(offset=zone.avg_offset_m)}"
+                            f"<extra></extra>"
+                        ),
+                    )
+                )
+
+    # Center map
+    if center_lats and center_lons:
+        center_lat = float(np.nanmean(center_lats))
+        center_lon = float(np.nanmean(center_lons))
+        zoom = 14
+    else:
+        center_lat = 0
+        center_lon = 0
+        zoom = 1
+        fig.add_annotation(
+            x=0.5, y=0.5,
+            xref='paper', yref='paper',
+            text=t('charts.track_map.no_gps'),
+            showarrow=False,
+            font={'size': 12, 'color': 'gray'}
+        )
+
+    title = t('charts.track_map.line_comparison_title') if mode == "line_comparison" else t('charts.track_map.title')
+
+    fig.update_layout(
+        mapbox={
+            'style': 'open-street-map',
+            'center': {'lat': center_lat, 'lon': center_lon},
+            'zoom': zoom
+        },
+        height=500,
+        margin={'l': 0, 'r': 0, 't': 30, 'b': 0},
+        title=title
+    )
+
+    return fig
+
+
 def create_gg_diagram(laps: list[LapData]) -> go.Figure:
     """
     Create G-G diagram (friction circle) for each lap.

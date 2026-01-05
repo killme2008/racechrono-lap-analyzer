@@ -96,6 +96,12 @@
     },
     "track_map": {
       "title": "赛道地图（颜色 = 速度）",
+      "view_mode": "显示模式",
+      "mode_line_comparison": "路线对比",
+      "mode_speed_coloring": "速度编码",
+      "line_comparison_title": "赛道路线对比",
+      "deviation_zone": "偏离区域",
+      "offset_tooltip": "偏移：{offset:.1f}m",
       "no_gps": "无 GPS 数据",
       "start": "起点"
     },

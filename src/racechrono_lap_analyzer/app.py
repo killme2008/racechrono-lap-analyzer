@@ -30,7 +30,7 @@ from racechrono_lap_analyzer.charts import (
     create_speed_comparison_chart,
     create_throttle_brake_chart,
     create_time_delta_chart,
-    create_track_map,
+    create_track_line_comparison,
 )
 from racechrono_lap_analyzer.data_parser import (
     LapData,
@@ -486,9 +486,17 @@ def main():
     # Tab 4: Track (Map + Corner Analysis)
     with tab_track:
         if show_track_map:
+            # View mode selector
+            view_mode = st.radio(
+                t("charts.track_map.view_mode"),
+                options=["line_comparison", "speed_coloring"],
+                format_func=lambda x: t(f"charts.track_map.mode_{x}"),
+                horizontal=True
+            )
+
             try:
-                track_map = create_track_map(laps)
-                st.plotly_chart(track_map, width="stretch")
+                track_fig = create_track_line_comparison(laps, mode=view_mode)
+                st.plotly_chart(track_fig, width="stretch")
             except Exception as e:
                 st.warning(f"Could not create track map: {e}")
 

@@ -7,6 +7,7 @@ from racechrono_lap_analyzer.charts import (
     create_gg_diagram,
     create_speed_comparison_chart,
     create_throttle_brake_chart,
+    create_track_line_comparison,
     create_track_map,
 )
 from racechrono_lap_analyzer.data_parser import LapData, SessionMetadata
@@ -113,6 +114,72 @@ class SpeedDeltaTests(unittest.TestCase):
 
         fig = create_speed_comparison_chart([lap_slow, lap_fast], show_delta=True)
         self.assertGreater(fig.layout.yaxis2.range[1], 30)
+
+
+class TrackLineComparisonTests(unittest.TestCase):
+    def test_line_comparison_mode_uses_lines(self) -> None:
+        df_gps = pd.DataFrame(
+            {
+                'distance': [0.0, 1.0, 2.0, 3.0, 4.0],
+                'time': [0.0, 1.0, 2.0, 3.0, 4.0],
+                'latitude': [31.0, 31.001, 31.002, 31.003, 31.004],
+                'longitude': [121.0, 121.001, 121.002, 121.003, 121.004],
+                'speed_kmh': [50.0, 60.0, 70.0, 60.0, 50.0],
+            }
+        )
+        lap1 = _make_lap('lap1', df_gps, lap_distance=4.0)
+        lap2 = _make_lap('lap2', df_gps, lap_distance=4.0)
+
+        fig = create_track_line_comparison([lap1, lap2], mode="line_comparison")
+
+        # Should have line traces
+        line_traces = [t for t in fig.data if hasattr(t, 'mode') and t.mode == 'lines']
+        self.assertGreater(len(line_traces), 0)
+
+    def test_speed_coloring_mode_delegates_to_track_map(self) -> None:
+        df_gps = pd.DataFrame(
+            {
+                'latitude': [31.0, 31.001, 31.002],
+                'longitude': [121.0, 121.001, 121.002],
+                'speed_kmh': [50.0, 60.0, 70.0],
+            }
+        )
+        lap1 = _make_lap('lap1', df_gps, lap_distance=2.0)
+
+        fig = create_track_line_comparison([lap1], mode="speed_coloring")
+
+        # Should be marker-based (from create_track_map)
+        marker_traces = [t for t in fig.data if hasattr(t, 'mode') and t.mode == 'markers']
+        self.assertGreater(len(marker_traces), 0)
+
+    def test_no_gps_shows_annotation(self) -> None:
+        df_no_gps = pd.DataFrame({'speed_kmh': [5.0, 6.0]})
+        lap = _make_lap('nogps', df_no_gps, lap_distance=1.0)
+
+        fig = create_track_line_comparison([lap], mode="line_comparison")
+
+        self.assertTrue(fig.layout.annotations)
+
+    def test_single_lap_no_deviation_highlights(self) -> None:
+        df_gps = pd.DataFrame(
+            {
+                'distance': [0.0, 1.0, 2.0, 3.0, 4.0],
+                'time': [0.0, 1.0, 2.0, 3.0, 4.0],
+                'latitude': [31.0, 31.001, 31.002, 31.003, 31.004],
+                'longitude': [121.0, 121.001, 121.002, 121.003, 121.004],
+                'speed_kmh': [50.0, 60.0, 70.0, 60.0, 50.0],
+            }
+        )
+        lap = _make_lap('lap1', df_gps, lap_distance=4.0)
+
+        fig = create_track_line_comparison([lap], mode="line_comparison")
+
+        # Single lap should not have deviation highlight traces
+        deviation_traces = [
+            t for t in fig.data
+            if hasattr(t, 'name') and t.name and 'deviation' in t.name.lower()
+        ]
+        self.assertEqual(len(deviation_traces), 0)
 
 
 if __name__ == '__main__':

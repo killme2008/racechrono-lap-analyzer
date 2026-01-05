@@ -287,6 +287,16 @@ class GGDiagramInsight:
     insights: list[str]  # Human-readable insight strings
 
 
+@dataclass
+class DeviationZone:
+    """A zone where significant line deviation occurs between laps."""
+
+    start_m: float  # Start distance (meters)
+    end_m: float  # End distance (meters)
+    max_offset_m: float  # Maximum offset in this zone
+    avg_offset_m: float  # Average offset in this zone
+
+
 def resample_by_distance(
     df: pd.DataFrame,
     distance_points: np.ndarray,
@@ -1459,3 +1469,187 @@ def get_corner_difficulty_risk(
             return ("medium", "medium")
 
     return ("medium", "medium")
+
+
+def haversine_distance(
+    lat1: float, lon1: float,
+    lat2: float, lon2: float
+) -> float:
+    """
+    Calculate the great-circle distance between two GPS points using Haversine formula.
+
+    Args:
+        lat1, lon1: First point coordinates (decimal degrees)
+        lat2, lon2: Second point coordinates (decimal degrees)
+
+    Returns:
+        Distance in meters
+    """
+    import math
+
+    # Earth radius in meters
+    R = 6371000
+
+    # Convert to radians
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    # Haversine formula
+    a = (math.sin(delta_phi / 2) ** 2 +
+         math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c
+
+
+def compute_line_deviations(
+    ref_lap: LapData,
+    cmp_lap: LapData,
+    resolution_m: float = 1.0
+) -> pd.Series:
+    """
+    Compute absolute distance between two lap traces at each distance point.
+
+    Uses Haversine formula to calculate the distance between GPS coordinates
+    at the same track distance. This measures how different the racing lines are.
+
+    Args:
+        ref_lap: Reference lap (typically the faster one)
+        cmp_lap: Comparison lap
+        resolution_m: Distance resolution for alignment (default 1m)
+
+    Returns:
+        Series of offset values in meters, indexed by distance.
+        Smoothed with 5-point rolling average to reduce GPS noise.
+    """
+    distances, aligned = align_laps([ref_lap, cmp_lap], resolution_m)
+
+    if len(distances) == 0 or len(aligned) < 2:
+        return pd.Series(dtype=float)
+
+    ref_df = aligned[0]
+    cmp_df = aligned[1]
+
+    # Check for required columns
+    if 'latitude' not in ref_df.columns or 'longitude' not in ref_df.columns:
+        return pd.Series(dtype=float)
+    if 'latitude' not in cmp_df.columns or 'longitude' not in cmp_df.columns:
+        return pd.Series(dtype=float)
+
+    offsets = []
+    for i in range(len(distances)):
+        ref_lat = ref_df.iloc[i]['latitude']
+        ref_lon = ref_df.iloc[i]['longitude']
+        cmp_lat = cmp_df.iloc[i]['latitude']
+        cmp_lon = cmp_df.iloc[i]['longitude']
+
+        if pd.isna(ref_lat) or pd.isna(ref_lon) or pd.isna(cmp_lat) or pd.isna(cmp_lon):
+            offsets.append(np.nan)
+        else:
+            offsets.append(haversine_distance(ref_lat, ref_lon, cmp_lat, cmp_lon))
+
+    # Smooth with rolling average to reduce GPS noise
+    return pd.Series(offsets, index=distances).rolling(5, center=True, min_periods=1).mean()
+
+
+def detect_deviation_zones(
+    offsets: pd.Series,
+    threshold_m: float = 1.0,
+    min_length_m: float = 10.0,
+    merge_gap_m: float = 20.0,
+    max_zones: int = 10
+) -> list[DeviationZone]:
+    """
+    Detect zones where line deviation exceeds threshold.
+
+    Algorithm:
+    1. Find continuous segments where offset > threshold_m
+    2. Merge segments separated by less than merge_gap_m
+    3. Filter out segments shorter than min_length_m
+    4. Limit to max_zones (sorted by max offset)
+
+    Args:
+        offsets: Series of offset values indexed by distance
+        threshold_m: Minimum offset to consider as deviation (default 1m)
+        min_length_m: Minimum zone length to keep (default 10m)
+        merge_gap_m: Maximum gap between zones to merge (default 20m)
+        max_zones: Maximum number of zones to return (default 10)
+
+    Returns:
+        List of DeviationZone objects sorted by distance
+    """
+    if offsets.empty:
+        return []
+
+    distances = offsets.index.values
+    values = offsets.values
+
+    # Find indices where offset exceeds threshold
+    above_threshold = values > threshold_m
+
+    if not above_threshold.any():
+        return []
+
+    # Find zone boundaries
+    zones_raw = []
+    in_zone = False
+    zone_start = 0
+
+    for i, (above, _dist) in enumerate(zip(above_threshold, distances, strict=False)):
+        if above and not in_zone:
+            # Start of zone
+            in_zone = True
+            zone_start = i
+        elif not above and in_zone:
+            # End of zone
+            in_zone = False
+            zones_raw.append((zone_start, i - 1))
+
+    # Handle zone that extends to end
+    if in_zone:
+        zones_raw.append((zone_start, len(distances) - 1))
+
+    if not zones_raw:
+        return []
+
+    # Merge nearby zones
+    merged = [zones_raw[0]]
+    for start, end in zones_raw[1:]:
+        prev_start, prev_end = merged[-1]
+        gap = distances[start] - distances[prev_end]
+
+        if gap <= merge_gap_m:
+            # Merge with previous zone
+            merged[-1] = (prev_start, end)
+        else:
+            merged.append((start, end))
+
+    # Convert to DeviationZone objects and filter by length
+    result = []
+    for start_idx, end_idx in merged:
+        start_m = distances[start_idx]
+        end_m = distances[end_idx]
+        length = end_m - start_m
+
+        if length >= min_length_m:
+            zone_values = values[start_idx:end_idx + 1]
+            valid_values = zone_values[np.isfinite(zone_values)]
+
+            if len(valid_values) > 0:
+                result.append(DeviationZone(
+                    start_m=float(start_m),
+                    end_m=float(end_m),
+                    max_offset_m=float(np.max(valid_values)),
+                    avg_offset_m=float(np.mean(valid_values))
+                ))
+
+    # Sort by max offset and limit count
+    result.sort(key=lambda z: z.max_offset_m, reverse=True)
+    result = result[:max_zones]
+
+    # Re-sort by distance for display
+    result.sort(key=lambda z: z.start_m)
+
+    return result
